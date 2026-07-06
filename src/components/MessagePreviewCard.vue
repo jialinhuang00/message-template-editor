@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CHANNEL_ICON } from '@/lib/channelIcons'
 import type { Channel } from '@/types'
 
 const props = defineProps<{
@@ -37,6 +38,7 @@ const CHANNEL_THEME: Record<Channel, ChannelStyle> = {
 const NEUTRAL: ChannelStyle = { bar: '#6b7280', bubble: '#ffffff', bubbleText: '#111827', wall: '#e5e7eb', avatar: 'header', name: 'none' }
 
 const theme = computed(() => (props.channel ? CHANNEL_THEME[props.channel] : NEUTRAL))
+const channelIcon = computed(() => (props.channel ? CHANNEL_ICON[props.channel] : null))
 </script>
 
 <template>
@@ -79,8 +81,8 @@ const theme = computed(() => (props.channel ? CHANNEL_THEME[props.channel] : NEU
           class="flex items-center gap-2 px-3 py-2 text-white transition-colors duration-300"
           :style="{ backgroundColor: theme.bar }"
         >
-          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/25 text-sm font-semibold">
-            {{ channel[0] }}
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/25">
+            <component :is="channelIcon" class="h-4 w-4" />
           </span>
           <div class="leading-tight">
             <div class="text-sm font-semibold">{{ SENDER }}</div>
@@ -106,10 +108,10 @@ const theme = computed(() => (props.channel ? CHANNEL_THEME[props.channel] : NEU
           <div v-if="hasContent" class="flex items-start gap-2">
             <span
               v-if="theme.avatar === 'beside'"
-              class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold text-white shadow-sm"
+              class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white shadow-sm"
               :style="{ backgroundColor: theme.bar }"
             >
-              {{ channel ? channel[0] : '?' }}
+              <component :is="channelIcon" class="h-4 w-4" />
             </span>
             <div class="max-w-[80%]">
               <div

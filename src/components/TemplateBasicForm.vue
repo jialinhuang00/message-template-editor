@@ -9,11 +9,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CHANNELS, LANGUAGES, type Channel, type Language } from '@/types'
+import { CHANNEL_ICON } from '@/lib/channelIcons'
 
 const name = defineModel<string>('name', { required: true })
 const channel = defineModel<Channel | ''>('channel', { required: true })
 const language = defineModel<Language>('language', { required: true })
 const title = defineModel<string>('title', { required: true })
+
+const LANGUAGE_LABEL: Record<Language, string> = {
+  'zh-TW': '繁體中文',
+  en: 'English',
+  ja: '日本語',
+}
 </script>
 
 <template>
@@ -25,15 +32,24 @@ const title = defineModel<string>('title', { required: true })
 
     <div class="grid grid-cols-2 gap-4">
       <div class="space-y-2">
-        <Label for="channel">Channel <span class="text-destructive">*</span></Label>
-        <Select v-model="channel">
-          <SelectTrigger id="channel" class="w-full">
-            <SelectValue placeholder="Select a channel" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="c in CHANNELS" :key="c" :value="c">{{ c }}</SelectItem>
-          </SelectContent>
-        </Select>
+        <Label>Channel <span class="text-destructive">*</span></Label>
+        <div id="channel" tabindex="-1" class="grid grid-cols-3 gap-2 outline-none">
+          <button
+            v-for="c in CHANNELS"
+            :key="c"
+            type="button"
+            class="flex flex-col items-center justify-center gap-1 rounded-md border px-1 py-2 text-xs transition-colors"
+            :class="
+              channel === c
+                ? 'border-primary bg-accent font-medium text-accent-foreground'
+                : 'border-border text-muted-foreground hover:bg-accent/50'
+            "
+            @click="channel = c"
+          >
+            <component :is="CHANNEL_ICON[c]" class="h-4 w-4" />
+            {{ c }}
+          </button>
+        </div>
       </div>
 
       <div class="space-y-2">
@@ -43,7 +59,9 @@ const title = defineModel<string>('title', { required: true })
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="l in LANGUAGES" :key="l" :value="l">{{ l }}</SelectItem>
+            <SelectItem v-for="l in LANGUAGES" :key="l" :value="l">
+              {{ LANGUAGE_LABEL[l] }}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
