@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import TemplateBasicForm from './TemplateBasicForm.vue'
 import MessageContentEditor from './MessageContentEditor.vue'
 import MessagePreviewCard from './MessagePreviewCard.vue'
@@ -71,7 +71,15 @@ function focusFirstInvalid() {
         />
 
         <Card>
-          <CardContent class="pt-6">
+          <CardHeader>
+            <CardTitle>
+              Validation
+              <span v-if="errors.length" class="ml-1 text-sm font-normal text-destructive">
+                · {{ errors.length }} {{ errors.length > 1 ? 'issues' : 'issue' }}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <ValidationErrorList v-if="errors.length" :errors="errors" @select="selectContentRange" />
             <p v-else class="text-sm font-medium text-green-700 dark:text-green-400">
               All checks pass — ready to submit.
