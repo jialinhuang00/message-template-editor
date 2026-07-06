@@ -55,7 +55,7 @@ function focusFirstInvalid() {
             v-model:language="form.language"
             v-model:title="form.title"
           />
-          <MessageContentEditor ref="editorRef" v-model="form.content" />
+          <MessageContentEditor ref="editorRef" v-model="form.content" :language="form.language" />
           <ValidationErrorList :errors="errors" @select="selectContentRange" />
         </CardContent>
       </Card>

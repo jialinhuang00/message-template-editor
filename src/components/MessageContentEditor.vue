@@ -4,13 +4,15 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import VariableInsertToolbar from './VariableInsertToolbar.vue'
 import { MAX_CONTENT_LENGTH } from '@/lib/validation'
+import { EXAMPLE_BY_LANGUAGE } from '@/lib/examples'
+import type { Language } from '@/types'
 
-const EXAMPLE_CONTENT = 'Hi {{ customer_name }}, your order {{ order_id }} is ready.'
-
+const props = defineProps<{ language: Language }>()
 const content = defineModel<string>({ required: true })
 
 const textareaRef = ref<InstanceType<typeof Textarea> | null>(null)
 const overLimit = computed(() => content.value.length > MAX_CONTENT_LENGTH)
+const example = computed(() => EXAMPLE_BY_LANGUAGE[props.language])
 
 function textareaEl(): HTMLTextAreaElement | undefined {
   return textareaRef.value?.$el as HTMLTextAreaElement | undefined
@@ -45,8 +47,8 @@ function insertVariable(name: string) {
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Tab' && !e.shiftKey && content.value.length === 0) {
     e.preventDefault()
-    content.value = EXAMPLE_CONTENT
-    setCaret(EXAMPLE_CONTENT.length)
+    content.value = example.value
+    setCaret(example.value.length)
   }
 }
 
@@ -78,7 +80,7 @@ defineExpose({ selectRange })
       v-model="content"
       rows="6"
       class="font-mono"
-      :placeholder="EXAMPLE_CONTENT"
+      :placeholder="example"
       @keydown="onKeydown"
     />
     <p class="text-xs text-muted-foreground">Tip: press Tab in the empty box to load an example.</p>
