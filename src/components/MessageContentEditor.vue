@@ -49,6 +49,16 @@ function onKeydown(e: KeyboardEvent) {
     setCaret(EXAMPLE_CONTENT.length)
   }
 }
+
+/** Focus the textarea and select a character range (driven by clickable errors). */
+function selectRange(start: number, end: number) {
+  const el = textareaEl()
+  if (!el) return
+  el.focus()
+  el.setSelectionRange(start, end)
+}
+
+defineExpose({ selectRange })
 </script>
 
 <template>

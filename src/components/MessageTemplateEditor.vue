@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import TemplateBasicForm from './TemplateBasicForm.vue'
@@ -15,6 +15,11 @@ const { form, content, language, errors, isValid, submitted, isSubmitting, submi
 const { preview } = useVariablePreview(content, language)
 
 const hasContent = computed(() => form.content.trim().length > 0)
+
+const editorRef = ref<InstanceType<typeof MessageContentEditor> | null>(null)
+function selectContentRange(range: { start: number; end: number }) {
+  editorRef.value?.selectRange(range.start, range.end)
+}
 </script>
 
 <template>
@@ -41,8 +46,8 @@ const hasContent = computed(() => form.content.trim().length > 0)
             v-model:language="form.language"
             v-model:title="form.title"
           />
-          <MessageContentEditor v-model="form.content" />
-          <ValidationErrorList :errors="errors" />
+          <MessageContentEditor ref="editorRef" v-model="form.content" />
+          <ValidationErrorList :errors="errors" @select="selectContentRange" />
         </CardContent>
       </Card>
 

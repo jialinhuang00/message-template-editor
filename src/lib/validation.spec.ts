@@ -15,6 +15,8 @@ function validForm(overrides: Partial<TemplateForm> = {}): TemplateForm {
 }
 
 const messages = (form: TemplateForm) => validateTemplate(form).map((e) => e.message)
+const syntaxErrors = (form: TemplateForm) =>
+  validateTemplate(form).filter((e) => e.message.startsWith('Invalid variable syntax'))
 
 describe('validateTemplate', () => {
   it('returns no errors for a valid form', () => {
@@ -65,19 +67,23 @@ describe('validateTemplate', () => {
     })
 
     it('flags a missing closing brace as invalid syntax', () => {
-      expect(messages(validForm({ content: 'Hi {{ customer_name }' }))).toContain(
-        'Invalid variable syntax',
-      )
+      expect(syntaxErrors(validForm({ content: 'Hi {{ customer_name }' }))).toHaveLength(1)
     })
 
     it('flags a single-brace token as invalid syntax', () => {
-      expect(messages(validForm({ content: 'Hi { customer_name }}' }))).toContain(
-        'Invalid variable syntax',
-      )
+      expect(syntaxErrors(validForm({ content: 'Hi { customer_name }}' }))).toHaveLength(1)
     })
 
     it('does not flag a well-formed token as invalid syntax', () => {
-      expect(messages(validForm())).not.toContain('Invalid variable syntax')
+      expect(syntaxErrors(validForm())).toHaveLength(0)
+    })
+
+    it('locates each malformed region separately, split by valid tokens', () => {
+      const errors = syntaxErrors(
+        validForm({ content: '{{ order_id }. {{ customer_name }}{ customer_name }' }),
+      )
+      expect(errors).toHaveLength(2)
+      expect(errors.every((e) => e.range)).toBe(true)
     })
   })
 

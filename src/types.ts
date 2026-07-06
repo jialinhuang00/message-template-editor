@@ -21,6 +21,8 @@ export type ValidationField = 'name' | 'channel' | 'content'
 export interface ValidationError {
   field: ValidationField
   message: string
+  /** Location in `content` the error refers to, so the UI can select it on click. */
+  range?: { start: number; end: number }
 }
 
 /**
