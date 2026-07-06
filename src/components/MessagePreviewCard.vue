@@ -70,7 +70,7 @@ const theme = computed(() => (props.channel ? CHANNEL_THEME[props.channel] : NEU
 
     <CardContent>
       <div
-        class="overflow-hidden rounded-xl transition-colors duration-300"
+        class="overflow-hidden rounded-xl shadow-md ring-1 ring-black/10 transition-colors duration-300"
         :style="{ backgroundColor: theme.wall }"
       >
         <!-- top bar: avatar + contact name + channel -->
