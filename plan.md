@@ -144,5 +144,8 @@ AI usage (five prompts):
 Parked enhancements, in priority order:
 
 1. **Channel realism** — make each preview look more like the real app: LINE rounded bubbles, Messenger avatar, timestamp + read receipts. Colours and the channel bar already differ per channel; this is the next fidelity layer.
-2. **Save template to localStorage** — persist submitted templates locally, list them, click to reload into the form. Simulates a template library without a backend. Persistence is not required (submit only needs to display the payload), so this is a bonus that reinforces the "save a template, not send a message" model.
-3. **Playwright E2E** — end-to-end tests over the real browser flow (fill form → live preview substitutes mock values → submit shows payload; malformed braces surface the syntax error). Unit tests already cover the validation core; this adds coverage of the wiring the unit tests can't see.
+
+### Shipped
+
+- **Save template to localStorage** — a submitted template is persisted under `mte:templates`, listed in an import selector, and reloads into the form on pick. Re-submitting a loaded template overwrites the same `id`; a new one is appended with a fresh uuid. After a successful submit the form resets while the payload panel stays.
+- **Playwright E2E** — `e2e/editor.spec.ts` covers three flows the unit tests can't see: clicking a validation error focuses its field, switching channel updates the preview, and Tab loads the example into empty content.
