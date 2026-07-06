@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { defineConfig } from 'vite'
+import { configDefaults, defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import Icons from 'unplugin-icons/vite'
@@ -12,5 +12,10 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  test: {
+    // Playwright specs live in e2e/ and must run only under `playwright test`,
+    // never be picked up by Vitest (they import @playwright/test).
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 })
