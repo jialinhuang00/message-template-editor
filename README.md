@@ -13,6 +13,7 @@ Live demo: https://mte.jialin00.com
 pnpm install
 pnpm dev        # http://localhost:5173
 pnpm test       # Vitest (validation unit tests)
+pnpm lint       # ESLint (Vue + TypeScript)
 pnpm build      # type-check (vue-tsc) + production build
 ```
 
@@ -23,8 +24,9 @@ Requires Node 22+ and pnpm 10 (pinned via the `packageManager` field).
 - **Vue 3** (`<script setup lang="ts">`, Composition API) + **TypeScript**
 - **Vite** build
 - **Tailwind CSS v4** + **shadcn-vue** components
+- **unplugin-icons** (brand channel icons from Simple Icons)
 - **Vitest** unit tests
-- **ESLint + Prettier**
+- **ESLint** (`@vue/eslint-config-typescript`, flat config)
 
 ## Architecture
 
@@ -43,13 +45,15 @@ src/
 │   └── examples.ts             placeholder / Tab example, per language
 ├── composables/
 │   ├── useTemplateForm.ts      form state + live validation + submit round-trip
-│   └── useVariablePreview.ts   mock substitution for the preview
+│   ├── useVariablePreview.ts   mock substitution for the preview
+│   └── useChatSounds.ts        Web Audio send sound (synthesised, no assets)
 └── components/
     ├── MessageTemplateEditor.vue   container, owns the state
     ├── TemplateBasicForm.vue       name / channel / language / title
     ├── MessageContentEditor.vue    textarea, cursor insertion, Tab-to-fill example
     ├── VariableInsertToolbar.vue   variable buttons
     ├── MessagePreviewCard.vue      per-channel chat preview
+    ├── TypingStickman.vue          live composing text + blinking caret
     ├── ValidationErrorList.vue     clickable errors
     ├── PayloadPreview.vue          submitted payload
     └── AppFooter.vue
@@ -79,9 +83,12 @@ Variable parsing scans brace clusters (`/\{+[^{}]*\}+|\{+|\}+/`) and classifies 
 | `{{ dsada.com }}` (balanced, bad name) | `Invalid variable name: dsada.com` |
 | `{{ x }` / `{ x }}` (stray brace) | `Invalid variable syntax` |
 
-Each variable error carries a character `range`, so clicking it focuses the textarea and
-selects the offending span. Generic syntax errors also show a short context snippet, so a
-long message stays locatable without exposing raw indices.
+Every error is clickable and jumps to its field; a brace error additionally carries a
+character `range`, so clicking it focuses the textarea and selects the offending span.
+Generic syntax errors also show a short context snippet (clipped at brace boundaries so it
+never bleeds into a neighbouring token), keeping a long message locatable without exposing
+raw indices. Classification checks brace count first: anything other than exactly `{{ … }}`
+is a syntax error, which takes priority over interpreting the inner text.
 
 ## Design decisions & trade-offs
 
@@ -101,10 +108,22 @@ long message stays locatable without exposing raw indices.
   and the placeholder/Tab example (e.g. `ja` shows a Japanese name).
 - **Plain `<textarea>`, not a rich text editor.** The spec's anatomy specifies a textarea;
   syntax highlighting inside it would need a contenteditable/overlay and isn't required.
+- **The preview is one persistent bubble, not swapped elements.** While editing it shows the
+  live text with a blinking caret; 700ms after the last keystroke the message "sends" (the
+  caret drops, a timestamp appears, one send sound plays, consistent across channels). Early
+  versions swapped a composing element for a settled one and flashed on the handoff, so the
+  bubble now stays mounted and only toggles the caret and timestamp in place. Per-channel
+  detail matches each app: WhatsApp shows a "typing…" status and in-bubble time, LINE puts the
+  time beside the bubble, Messenger shows neither. Sounds are synthesised with the Web Audio
+  API (no audio files) and default-on with a mute toggle.
 - **Validation lives in the preview column and only appears after the first edit.** The
   reference tree puts errors under the editor; moving them balances the two columns. Showing
   them on an untouched form would blame the user before they've done anything, so a `dirty`
   flag gates them (a `Draft` state until then).
+- **Channel defaults to LINE.** A template almost always targets a channel, so preselecting
+  one lets the preview render immediately instead of showing an empty "no channel" state. The
+  `Channel is required` rule stays in `validateTemplate` as a defensive guard, even though the
+  UI no longer lets a user clear the selection to reach it.
 - **Stray brace is always invalid syntax**, including a lone `{` the user meant literally.
 - **500 characters counts the raw content**, including `{{ }}`, not the substituted output.
 - **Language required conflict:** the anatomy table marks Language required, but the
@@ -116,8 +135,8 @@ long message stays locatable without exposing raw indices.
 **Which AI tools:** Claude Code (Opus 4.8), used throughout as a pair.
 
 **How I used it:** requirement breakdown and scoping, architecture and component design,
-the validation logic and regex, unit tests, this README, and iterative UX refinement driven
-by screenshots.
+the validation logic and regex, unit tests, this README, and heavy iterative UX refinement
+driven by screenshots (channel-accurate previews, the composing animation, send sounds).
 
 **Key prompts that shaped the result:**
 
@@ -128,9 +147,13 @@ by screenshots.
 3. *"Validation errors should only appear after I start editing — blaming an untouched form
    is bad."* — led to the `dirty`-gated validation and the `Draft` state.
 4. *"Each error should state its cause; for an unknown variable just name the key, otherwise
-   show a few characters of context."* — led to the classified errors and context snippets.
-5. *"Customize the preview per channel — LINE, WhatsApp, Messenger"* (with reference
-   screenshots) — led to the channel-accurate chat preview.
+   show a few characters of context. And `{{{ customer_name }}}` should read as a syntax
+   problem, not a mis-named variable."* — led to the classified errors, context snippets that
+   stop at brace boundaries, and classifying by brace count before inspecting the inner text.
+5. *"Customize the preview per channel (LINE, WhatsApp, Messenger), make the typing animation
+   follow what I actually type, and add a send sound."* (with reference screenshots) — led to
+   the channel-accurate chat preview, the caret-driven composing bubble, and the Web Audio
+   send sound. Fixing the flicker on send drove the single-persistent-bubble design.
 
 **AI suggestions I did not adopt:**
 
@@ -140,12 +163,15 @@ by screenshots.
 - AI said the spec only needs to display the payload on submit; I want a localStorage
   template library (parked as a backlog item).
 - AI's Messenger preview used a grey background; I corrected it to white with grey bubbles.
+- AI's first send animation re-mounted the bubble and flashed on every send; I switched to a
+  single persistent bubble that only toggles the caret and timestamp in place.
 
 **How I verified AI output:**
 
-- Vitest unit tests (18 cases) against the pure validation function, covering the seven spec
+- Vitest unit tests (19 cases) against the pure validation function, covering the seven spec
   rules and malformed-syntax edge cases.
 - TypeScript type-checking (`vue-tsc --noEmit`) after every change; zero errors before commit.
+- ESLint (`@vue/eslint-config-typescript`) with zero warnings.
 - Manual edge-case testing in the dev server (missing braces, unknown variables, consecutive
   spaces) watching the preview and error reactions.
 - A section-by-section cross-check against the assignment PDF.
@@ -155,15 +181,16 @@ by screenshots.
 - No backend. `submitTemplate` is a fake async that echoes the payload after a short delay.
 - No persistence; submitted templates are not saved (see backlog).
 - The channel preview is stylised, not pixel-accurate to each app.
+- Preview sounds are synthesised approximations, not the real (copyrighted) branded sounds.
 - Variable names accept `\w+` only (no Unicode identifiers).
 - Cursor insertion reaches the textarea via the shadcn component's `$el`.
 
 ## What I'd improve with more time
 
 - Save templates to localStorage with a re-loadable template list.
-- Higher-fidelity channel previews (rounded LINE bubbles, timestamps, read receipts).
+- Playwright E2E over the real browser flow (form → live preview → submit → payload).
+- Higher-fidelity channel previews (read receipts, delivery ticks).
 - Component tests with `@vue/test-utils`, on top of the pure-function unit tests.
-- Debounced validation for very long content.
 - Localize the editor UI itself, not just the preview mock data.
 
 See `plan.md` for the original build plan and the deferred backlog.

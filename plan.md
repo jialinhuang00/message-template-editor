@@ -145,3 +145,4 @@ Parked enhancements, in priority order:
 
 1. **Channel realism** — make each preview look more like the real app: LINE rounded bubbles, Messenger avatar, timestamp + read receipts. Colours and the channel bar already differ per channel; this is the next fidelity layer.
 2. **Save template to localStorage** — persist submitted templates locally, list them, click to reload into the form. Simulates a template library without a backend. The spec does not require persistence (submit only needs to display the payload), so this is a bonus that reinforces the "save a template, not send a message" model.
+3. **Playwright E2E** — end-to-end tests over the real browser flow (fill form → live preview substitutes mock values → submit shows payload; malformed braces surface the syntax error). Unit tests already cover the validation core; this adds coverage of the wiring the unit tests can't see.
