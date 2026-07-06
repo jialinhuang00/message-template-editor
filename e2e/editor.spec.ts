@@ -4,14 +4,26 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/')
 })
 
-test('clicking a validation error focuses its field', async ({ page }) => {
-  // Editing content makes the form dirty while Template Name stays empty,
-  // surfacing the "required" error in the Validation panel.
-  await page.locator('#content').fill('{{ order_id }}')
+test('validation: messages, clickable error focus, and the WhatsApp space rule', async ({
+  page,
+}) => {
+  // Unknown variable.
+  await page.locator('#content').fill('{{ unknown_key }}')
+  await expect(page.getByText('Unknown variable: unknown_key')).toBeVisible()
 
+  // Invalid brace syntax (brace count wrong, not a mis-named variable).
+  await page.locator('#content').fill('{{{ customer_name }}}')
+  await expect(page.getByText('Invalid variable syntax')).toBeVisible()
+
+  // The form is now dirty with an empty name, so the required error shows; clicking
+  // it jumps focus to that field.
   await page.getByRole('button', { name: /Template name is required/ }).click()
-
   await expect(page.locator('#name')).toBeFocused()
+
+  // Channel-specific rule: WhatsApp rejects 6+ consecutive spaces.
+  await page.getByRole('button', { name: 'WhatsApp' }).click()
+  await page.locator('#content').fill(`Hi${' '.repeat(6)}there`)
+  await expect(page.getByText(/more than 5 consecutive spaces/)).toBeVisible()
 })
 
 test('switching channel is reflected in the preview', async ({ page }) => {
@@ -44,21 +56,6 @@ test('the preview substitutes variables live as you type', async ({ page }) => {
   await page.locator('#content').fill('Hi {{ customer_name }}, order {{ order_id }}')
 
   await expect(page.getByText('Hi Alex, order A123456')).toBeVisible()
-})
-
-test('flags an unknown variable and invalid brace syntax', async ({ page }) => {
-  await page.locator('#content').fill('{{ unknown_key }}')
-  await expect(page.getByText('Unknown variable: unknown_key')).toBeVisible()
-
-  await page.locator('#content').fill('{{{ customer_name }}}')
-  await expect(page.getByText('Invalid variable syntax')).toBeVisible()
-})
-
-test('WhatsApp flags more than 5 consecutive spaces', async ({ page }) => {
-  await page.getByRole('button', { name: 'WhatsApp' }).click()
-  await page.locator('#content').fill(`Hi${' '.repeat(6)}there`)
-
-  await expect(page.getByText(/more than 5 consecutive spaces/)).toBeVisible()
 })
 
 test('submitting saves the template, clears the form, and lists it for import', async ({
