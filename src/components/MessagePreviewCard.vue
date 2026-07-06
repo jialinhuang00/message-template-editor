@@ -3,12 +3,14 @@ import { computed, onMounted, ref } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import TypingStickman from './TypingStickman.vue'
 import { CHANNEL_ICON } from '@/lib/channelIcons'
-import type { Channel } from '@/types'
+import { LOCALES } from '@/i18n'
+import type { Channel, Language } from '@/types'
 
 const props = defineProps<{
   channel: Channel | ''
   title: string
   preview: string
+  language: Language
   isValid: boolean
   hasContent: boolean
   typing: boolean
@@ -42,22 +44,29 @@ type ChannelStyle = {
   typing: 'subtitle' | 'typewriter' | 'none'
   /** Where the per-message timestamp sits (Messenger shows none). */
   time: 'inside' | 'beside' | 'none'
+  /** How the "read" status renders: WhatsApp blue ticks, LINE/Messenger a word. */
+  receipt: 'ticks' | 'read' | 'seen' | 'none'
 }
 
 /** Stylised (not pixel-accurate) per-channel look, matched to each app's real chat. */
 const CHANNEL_THEME: Record<Channel, ChannelStyle> = {
-  WhatsApp: { bar: '#075e54', bubble: '#ffffff', bubbleText: '#111827', wall: '#e5ddd5', avatar: 'header', name: 'brand', typing: 'subtitle', time: 'inside' },
-  LINE: { bar: '#06c755', bubble: '#ffffff', bubbleText: '#111827', wall: '#8ca6c8', avatar: 'beside', name: 'muted', typing: 'none', time: 'beside' },
-  Messenger: { bar: '#0084ff', bubble: '#e4e6eb', bubbleText: '#111827', wall: '#ffffff', avatar: 'beside', name: 'none', typing: 'typewriter', time: 'none' },
+  WhatsApp: { bar: '#075e54', bubble: '#ffffff', bubbleText: '#111827', wall: '#e5ddd5', avatar: 'header', name: 'brand', typing: 'subtitle', time: 'inside', receipt: 'ticks' },
+  LINE: { bar: '#06c755', bubble: '#ffffff', bubbleText: '#111827', wall: '#8ca6c8', avatar: 'beside', name: 'muted', typing: 'none', time: 'beside', receipt: 'read' },
+  Messenger: { bar: '#0084ff', bubble: '#e4e6eb', bubbleText: '#111827', wall: '#ffffff', avatar: 'beside', name: 'none', typing: 'typewriter', time: 'none', receipt: 'seen' },
 }
-const NEUTRAL: ChannelStyle = { bar: '#6b7280', bubble: '#ffffff', bubbleText: '#111827', wall: '#e5e7eb', avatar: 'header', name: 'none', typing: 'none', time: 'none' }
+const NEUTRAL: ChannelStyle = { bar: '#6b7280', bubble: '#ffffff', bubbleText: '#111827', wall: '#e5e7eb', avatar: 'header', name: 'none', typing: 'none', time: 'none', receipt: 'none' }
 
 const theme = computed(() => (props.channel ? CHANNEL_THEME[props.channel] : NEUTRAL))
 const channelIcon = computed(() => (props.channel ? CHANNEL_ICON[props.channel] : null))
-// While composing, Messenger shows a blinking caret; the timestamp only appears
-// once the message has settled (typing stopped).
+// While composing, Messenger shows a blinking caret; the timestamp and read receipt
+// only appear once the message has settled (typing stopped).
 const showCaret = computed(() => props.typing && theme.value.typing === 'typewriter')
 const showTime = computed(() => !props.typing)
+/** Localized read-receipt word for the current language (LINE/Messenger only). */
+const receiptLabel = computed(() => {
+  const r = LOCALES[props.language].receipt
+  return theme.value.receipt === 'seen' ? r.seen : r.read
+})
 </script>
 
 <template>
@@ -168,7 +177,7 @@ const showTime = computed(() => !props.typing)
               >
                 <component :is="channelIcon" class="h-4 w-4" />
               </span>
-              <div class="max-w-[80%]">
+              <div class="min-w-0 flex-1">
                 <div
                   v-if="theme.name === 'brand'"
                   class="mb-0.5 ml-1 text-xs font-semibold"
@@ -181,24 +190,51 @@ const showTime = computed(() => !props.typing)
                 </div>
                 <div class="flex items-end gap-1">
                   <div
-                    class="rounded-lg px-3 py-2 text-sm shadow-sm transition-colors duration-300"
+                    class="max-w-[80%] min-w-0 rounded-lg px-3 py-2 text-sm shadow-sm transition-colors duration-300"
+                    :class="theme.time === 'inside' ? 'relative pb-5' : ''"
                     :style="{ backgroundColor: theme.bubble, color: theme.bubbleText }"
                   >
                     <span v-if="title" class="mb-1 block font-bold">{{ title }}</span>
                     <TypingStickman :text="preview" :caret="showCaret" />
+                    <!-- Pinned to the reserved bottom-right strip so the time + ticks
+                         hold a fixed position regardless of message length. -->
                     <span
                       v-if="showTime && theme.time === 'inside'"
-                      class="mt-1 block text-right text-[10px] text-black/40"
+                      class="absolute right-2.5 bottom-1 flex items-center gap-1 text-[10px] text-black/40"
                     >
                       {{ sentAt }}
+                      <!-- WhatsApp blue "read" double-tick -->
+                      <svg
+                        v-if="theme.receipt === 'ticks'"
+                        viewBox="0 0 14 11"
+                        class="h-2.5 w-3.5"
+                        fill="none"
+                        stroke="#53bdeb"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-label="Read"
+                      >
+                        <path d="M0.5 6 3.5 9 9 2.5" />
+                        <path d="M5 6 8 9 13.5 2.5" />
+                      </svg>
                     </span>
                   </div>
-                  <span
+                  <!-- LINE: read label + time sit beside the bubble -->
+                  <div
                     v-if="showTime && theme.time === 'beside'"
-                    class="shrink-0 pb-0.5 text-[10px] text-white/85"
+                    class="flex shrink-0 flex-col items-end justify-end pb-0.5 text-[10px] leading-tight text-white/85"
                   >
-                    {{ sentAt }}
-                  </span>
+                    <span v-if="theme.receipt === 'read'">{{ receiptLabel }}</span>
+                    <span>{{ sentAt }}</span>
+                  </div>
+                </div>
+                <!-- Messenger: a "Seen" line under the bubble (it has no timestamp) -->
+                <div
+                  v-if="showTime && theme.receipt === 'seen'"
+                  class="mt-0.5 max-w-[80%] text-right text-[10px] text-black/40"
+                >
+                  {{ receiptLabel }}
                 </div>
               </div>
             </div>

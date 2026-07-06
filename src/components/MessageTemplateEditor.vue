@@ -97,6 +97,7 @@ function focusFirstInvalid() {
           :channel="form.channel"
           :title="form.title"
           :preview="preview"
+          :language="form.language"
           :is-valid="isValid"
           :has-content="hasContent"
           :typing="isTyping"

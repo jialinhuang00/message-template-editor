@@ -40,9 +40,10 @@ src/
 │   ├── validation.ts           validateTemplate(form) → ValidationError[]
 │   ├── variables.ts            {{ }} parsing helpers
 │   ├── payload.ts              buildPayload(form) → SubmitPayload
-│   ├── submit.ts               fake async submit (stands in for a backend)
-│   ├── mock.ts                 preview mock values, per language
-│   └── examples.ts             placeholder / Tab example, per language
+│   └── submit.ts               fake async submit (stands in for a backend)
+├── i18n/                       preview strings per language (en / ja / zh-TW)
+│   ├── types.ts                Locale shape (mock values, example, receipt words)
+│   └── locales/                one file per language
 ├── composables/
 │   ├── useTemplateForm.ts      form state + live validation + submit round-trip
 │   ├── useVariablePreview.ts   mock substitution for the preview
@@ -104,8 +105,12 @@ is a syntax error, which takes priority over interpreting the inner text.
 - **Payload keeps the raw content** (with `{{ }}`). Substitution belongs on the send side,
   per recipient; the frontend should not bake in values at authoring time.
 - **Language has no validation.** The requirements list it but attach no behaviour to it. It
-  goes into the payload as metadata. Beyond that, I let it localize the preview mock values
-  and the placeholder/Tab example (e.g. `ja` shows a Japanese name).
+  goes into the payload as metadata. Beyond that, `src/i18n` localizes everything the recipient
+  would see by language: the preview mock values, the placeholder/Tab example, and the
+  read-receipt wording (`Read` / `已讀` / `既読`). The editor UI itself stays English.
+- **Read receipts are per-channel, matched to each app.** WhatsApp shows a blue double-tick,
+  LINE a read label beside the time, Messenger a "seen" line under the bubble. A custom
+  structured `src/i18n` is enough for three preview strings; vue-i18n would be overkill.
 - **Plain `<textarea>`, not a rich text editor.** The suggested anatomy specifies a textarea;
   syntax highlighting inside it would need a contenteditable/overlay and isn't required.
 - **The preview is one persistent bubble, not swapped elements.** While editing it shows the
@@ -180,7 +185,9 @@ driven by screenshots (channel-accurate previews, the composing animation, send 
 
 - No backend. `submitTemplate` is a fake async that echoes the payload after a short delay.
 - No persistence; submitted templates are not saved (see backlog).
-- The channel preview is stylised, not pixel-accurate to each app.
+- The channel preview is identity-level, not pixel-level: palette, layout landmarks, and read
+  receipts match each app, but it does not clone exact fonts, bubble tails, or the full
+  sent/delivered/read progression.
 - Preview sounds are synthesised approximations, not the real (copyrighted) branded sounds.
 - Variable names accept `\w+` only (no Unicode identifiers).
 - Cursor insertion reaches the textarea via the shadcn component's `$el`.
@@ -189,7 +196,7 @@ driven by screenshots (channel-accurate previews, the composing animation, send 
 
 - Save templates to localStorage with a re-loadable template list.
 - Playwright E2E over the real browser flow (form → live preview → submit → payload).
-- Higher-fidelity channel previews (read receipts, delivery ticks).
+- Message-state progression in the preview (sent vs delivered vs read), not just the read state.
 - Component tests with `@vue/test-utils`, on top of the pure-function unit tests.
 - Localize the editor UI itself, not just the preview mock data.
 

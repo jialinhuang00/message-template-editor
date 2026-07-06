@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import VariableInsertToolbar from './VariableInsertToolbar.vue'
 import { MAX_CONTENT_LENGTH } from '@/lib/validation'
-import { EXAMPLE_BY_LANGUAGE } from '@/lib/examples'
+import { LOCALES } from '@/i18n'
 import type { Language } from '@/types'
 
 const props = defineProps<{ language: Language }>()
@@ -12,7 +12,7 @@ const content = defineModel<string>({ required: true })
 
 const textareaRef = ref<InstanceType<typeof Textarea> | null>(null)
 const overLimit = computed(() => content.value.length > MAX_CONTENT_LENGTH)
-const example = computed(() => EXAMPLE_BY_LANGUAGE[props.language])
+const example = computed(() => LOCALES[props.language].example)
 
 function textareaEl(): HTMLTextAreaElement | undefined {
   return textareaRef.value?.$el as HTMLTextAreaElement | undefined

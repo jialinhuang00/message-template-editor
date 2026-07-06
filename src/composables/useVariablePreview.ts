@@ -1,5 +1,5 @@
 import { computed, type Ref } from 'vue'
-import { MOCK_VALUES } from '@/lib/mock'
+import { LOCALES } from '@/i18n'
 import { VARIABLE_TOKEN, isSupportedVariable } from '@/lib/variables'
 import type { Language } from '@/types'
 
@@ -10,7 +10,7 @@ import type { Language } from '@/types'
 export function useVariablePreview(content: Ref<string>, language: Ref<Language>) {
   const preview = computed(() =>
     content.value.replace(VARIABLE_TOKEN, (match, name: string) =>
-      isSupportedVariable(name) ? MOCK_VALUES[language.value][name] : match,
+      isSupportedVariable(name) ? LOCALES[language.value].mock[name] : match,
     ),
   )
 
