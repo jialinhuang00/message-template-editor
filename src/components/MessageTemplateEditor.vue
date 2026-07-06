@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import TemplateBasicForm from './TemplateBasicForm.vue'
+import TemplateLibrarySelect from './TemplateLibrarySelect.vue'
 import MessageContentEditor from './MessageContentEditor.vue'
 import MessagePreviewCard from './MessagePreviewCard.vue'
 import ValidationErrorList from './ValidationErrorList.vue'
@@ -11,8 +12,20 @@ import { useTemplateForm } from '@/composables/useTemplateForm'
 import { useVariablePreview } from '@/composables/useVariablePreview'
 import { useChatSounds } from '@/composables/useChatSounds'
 
-const { form, content, language, errors, isValid, dirty, submitted, isSubmitting, submitError, submit } =
-  useTemplateForm()
+const {
+  form,
+  content,
+  language,
+  errors,
+  isValid,
+  dirty,
+  submitted,
+  isSubmitting,
+  submitError,
+  submit,
+  templates,
+  loadTemplate,
+} = useTemplateForm()
 const { preview } = useVariablePreview(content, language)
 const { muted, messageSent } = useChatSounds()
 
@@ -77,6 +90,7 @@ function focusFirstInvalid() {
       <!-- Editor -->
       <Card class="min-w-0">
         <CardContent class="space-y-6 pt-6">
+          <TemplateLibrarySelect :templates="templates" @load="loadTemplate" />
           <TemplateBasicForm
             v-model:name="form.name"
             v-model:channel="form.channel"

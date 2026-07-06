@@ -43,3 +43,6 @@ export interface SubmitPayload {
     createdAt: string
   }
 }
+
+/** A submitted payload persisted in the local template library, keyed by a stable id. */
+export type StoredTemplate = SubmitPayload & { id: string }
