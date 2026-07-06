@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import TypingStickman from './TypingStickman.vue'
 import { CHANNEL_ICON } from '@/lib/channelIcons'
 import type { Channel } from '@/types'
 
@@ -10,6 +11,7 @@ const props = defineProps<{
   preview: string
   isValid: boolean
   hasContent: boolean
+  typing: boolean
   showStatus: boolean
 }>()
 
@@ -27,18 +29,21 @@ type ChannelStyle = {
   avatar: 'header' | 'beside'
   /** How the sender name renders above the bubble. */
   name: 'brand' | 'muted' | 'none'
+  /** How a typing indicator shows while the author edits. */
+  typing: 'subtitle' | 'dots' | 'none'
 }
 
 /** Stylised (not pixel-accurate) per-channel look, matched to each app's real chat. */
 const CHANNEL_THEME: Record<Channel, ChannelStyle> = {
-  WhatsApp: { bar: '#075e54', bubble: '#ffffff', bubbleText: '#111827', wall: '#e5ddd5', avatar: 'header', name: 'brand' },
-  LINE: { bar: '#06c755', bubble: '#ffffff', bubbleText: '#111827', wall: '#8ca6c8', avatar: 'beside', name: 'muted' },
-  Messenger: { bar: '#0084ff', bubble: '#e4e6eb', bubbleText: '#111827', wall: '#ffffff', avatar: 'beside', name: 'none' },
+  WhatsApp: { bar: '#075e54', bubble: '#ffffff', bubbleText: '#111827', wall: '#e5ddd5', avatar: 'header', name: 'brand', typing: 'subtitle' },
+  LINE: { bar: '#06c755', bubble: '#ffffff', bubbleText: '#111827', wall: '#8ca6c8', avatar: 'beside', name: 'muted', typing: 'none' },
+  Messenger: { bar: '#0084ff', bubble: '#e4e6eb', bubbleText: '#111827', wall: '#ffffff', avatar: 'beside', name: 'none', typing: 'dots' },
 }
-const NEUTRAL: ChannelStyle = { bar: '#6b7280', bubble: '#ffffff', bubbleText: '#111827', wall: '#e5e7eb', avatar: 'header', name: 'none' }
+const NEUTRAL: ChannelStyle = { bar: '#6b7280', bubble: '#ffffff', bubbleText: '#111827', wall: '#e5e7eb', avatar: 'header', name: 'none', typing: 'none' }
 
 const theme = computed(() => (props.channel ? CHANNEL_THEME[props.channel] : NEUTRAL))
 const channelIcon = computed(() => (props.channel ? CHANNEL_ICON[props.channel] : null))
+const showDots = computed(() => props.typing && theme.value.typing === 'dots')
 </script>
 
 <template>
@@ -75,7 +80,7 @@ const channelIcon = computed(() => (props.channel ? CHANNEL_ICON[props.channel] 
         class="overflow-hidden rounded-xl shadow-md ring-1 ring-black/10 transition-colors duration-300"
         :style="{ backgroundColor: theme.wall }"
       >
-        <!-- top bar: avatar + contact name + channel -->
+        <!-- top bar -->
         <div
           v-if="channel"
           class="flex items-center gap-2 px-3 py-2 text-white transition-colors duration-300"
@@ -86,7 +91,9 @@ const channelIcon = computed(() => (props.channel ? CHANNEL_ICON[props.channel] 
           </span>
           <div class="leading-tight">
             <div class="text-sm font-semibold">{{ SENDER }}</div>
-            <div class="text-[11px] text-white/70">{{ channel }}</div>
+            <div class="text-[11px] text-white/70">
+              {{ typing && theme.typing === 'subtitle' ? 'typing…' : channel }}
+            </div>
           </div>
         </div>
         <button
@@ -104,8 +111,40 @@ const channelIcon = computed(() => (props.channel ? CHANNEL_ICON[props.channel] 
         </button>
 
         <!-- message -->
-        <div class="flex min-h-[180px] flex-col p-3">
-          <div v-if="hasContent" class="flex items-start gap-2">
+        <div class="flex min-h-[180px] flex-col gap-2 p-3">
+          <Transition name="msg">
+            <div v-if="hasContent" class="flex items-start gap-2">
+              <span
+                v-if="theme.avatar === 'beside'"
+                class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white shadow-sm"
+                :style="{ backgroundColor: theme.bar }"
+              >
+                <component :is="channelIcon" class="h-4 w-4" />
+              </span>
+              <div class="max-w-[80%]">
+                <div
+                  v-if="theme.name === 'brand'"
+                  class="mb-0.5 ml-1 text-xs font-semibold"
+                  :style="{ color: theme.bar }"
+                >
+                  {{ SENDER }}
+                </div>
+                <div v-else-if="theme.name === 'muted'" class="mb-0.5 ml-1 text-[11px] text-black/45">
+                  {{ SENDER }}
+                </div>
+                <div
+                  class="rounded-lg px-3 py-2 text-sm shadow-sm transition-colors duration-300"
+                  :style="{ backgroundColor: theme.bubble, color: theme.bubbleText }"
+                >
+                  <span v-if="title" class="mb-1 block font-bold">{{ title }}</span>
+                  <span class="whitespace-pre-wrap break-words">{{ preview }}</span>
+                </div>
+              </div>
+            </div>
+          </Transition>
+
+          <!-- typing indicator (typewriter-caret "composing" animation) -->
+          <div v-if="showDots" class="flex items-end gap-2">
             <span
               v-if="theme.avatar === 'beside'"
               class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white shadow-sm"
@@ -113,27 +152,15 @@ const channelIcon = computed(() => (props.channel ? CHANNEL_ICON[props.channel] 
             >
               <component :is="channelIcon" class="h-4 w-4" />
             </span>
-            <div class="max-w-[80%]">
-              <div
-                v-if="theme.name === 'brand'"
-                class="mb-0.5 ml-1 text-xs font-semibold"
-                :style="{ color: theme.bar }"
-              >
-                {{ SENDER }}
-              </div>
-              <div v-else-if="theme.name === 'muted'" class="mb-0.5 ml-1 text-[11px] text-black/45">
-                {{ SENDER }}
-              </div>
-              <div
-                class="rounded-lg px-3 py-2 text-sm shadow-sm transition-colors duration-300"
-                :style="{ backgroundColor: theme.bubble, color: theme.bubbleText }"
-              >
-                <span v-if="title" class="mb-1 block font-bold">{{ title }}</span>
-                <span class="whitespace-pre-wrap break-words">{{ preview }}</span>
-              </div>
+            <div
+              class="rounded-lg px-3 py-2 text-gray-600 shadow-sm"
+              :style="{ backgroundColor: theme.bubble }"
+            >
+              <TypingStickman text="typing a message…" />
             </div>
           </div>
-          <p v-else class="m-auto text-sm text-black/45 italic">
+
+          <p v-if="!hasContent && !showDots" class="m-auto text-sm text-black/45 italic">
             Your message preview will appear here.
           </p>
         </div>
@@ -141,3 +168,15 @@ const channelIcon = computed(() => (props.channel ? CHANNEL_ICON[props.channel] 
     </CardContent>
   </Card>
 </template>
+
+<style scoped>
+.msg-enter-active {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+.msg-enter-from {
+  opacity: 0;
+  transform: translateY(6px) scale(0.98);
+}
+</style>

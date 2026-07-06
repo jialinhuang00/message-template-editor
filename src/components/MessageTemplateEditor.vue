@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import TemplateBasicForm from './TemplateBasicForm.vue'
@@ -15,6 +15,19 @@ const { form, content, language, errors, isValid, dirty, submitted, isSubmitting
 const { preview } = useVariablePreview(content, language)
 
 const hasContent = computed(() => form.content.trim().length > 0)
+
+// Show a "composing" animation while the author is actively editing the content,
+// then settle shortly after they pause.
+const isTyping = ref(false)
+let typingTimer: ReturnType<typeof setTimeout> | undefined
+watch(
+  () => form.content,
+  () => {
+    isTyping.value = true
+    clearTimeout(typingTimer)
+    typingTimer = setTimeout(() => (isTyping.value = false), 700)
+  },
+)
 
 const editorRef = ref<InstanceType<typeof MessageContentEditor> | null>(null)
 function selectContentRange(range: { start: number; end: number }) {
@@ -57,7 +70,11 @@ function focusFirstInvalid() {
             v-model:language="form.language"
             v-model:title="form.title"
           />
-          <MessageContentEditor ref="editorRef" v-model="form.content" :language="form.language" />
+          <MessageContentEditor
+            ref="editorRef"
+            v-model="form.content"
+            :language="form.language"
+          />
         </CardContent>
       </Card>
 
@@ -69,6 +86,7 @@ function focusFirstInvalid() {
           :preview="preview"
           :is-valid="isValid"
           :has-content="hasContent"
+          :typing="isTyping"
           :show-status="dirty"
           @focus-invalid="focusFirstInvalid"
           @focus-channel="focusField('channel')"
