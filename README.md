@@ -55,7 +55,7 @@ More knobs on the e2e run:
 PW_SLOWMO=500 pnpm test:e2e --headed   # watch it, at your own pace (ms per action)
 pnpm test:e2e --ui                     # Playwright's interactive runner (time-travel, picker)
 pnpm test:e2e --debug                  # step through with the inspector
-pnpm test:e2e -g "channel switch"      # run one test by title
+pnpm test:e2e -g "switching channel"   # run one test by title (matches the test name)
 ```
 
 ## Tech stack
