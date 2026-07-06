@@ -9,6 +9,8 @@ defineProps<{
   isValid: boolean
   hasContent: boolean
 }>()
+
+const emit = defineEmits<{ focusInvalid: [] }>()
 </script>
 
 <template>
@@ -17,15 +19,20 @@ defineProps<{
       <div class="flex items-center justify-between">
         <CardTitle>Preview</CardTitle>
         <span
-          class="rounded-full px-2 py-0.5 text-xs font-medium"
-          :class="
-            isValid
-              ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400'
-              : 'bg-destructive/10 text-destructive'
-          "
+          v-if="isValid"
+          class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950 dark:text-green-400"
         >
-          {{ isValid ? 'Valid' : 'Invalid' }}
+          Valid
         </span>
+        <button
+          v-else
+          type="button"
+          class="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive hover:bg-destructive/20"
+          title="Jump to the first field that needs fixing"
+          @click="emit('focusInvalid')"
+        >
+          Invalid
+        </button>
       </div>
     </CardHeader>
 

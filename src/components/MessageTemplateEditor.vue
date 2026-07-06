@@ -20,6 +20,15 @@ const editorRef = ref<InstanceType<typeof MessageContentEditor> | null>(null)
 function selectContentRange(range: { start: number; end: number }) {
   editorRef.value?.selectRange(range.start, range.end)
 }
+
+/** Jump to the first field that fails validation (fields share their name with their id). */
+function focusFirstInvalid() {
+  const first = errors.value[0]
+  if (!first) return
+  const el = document.getElementById(first.field)
+  el?.focus()
+  el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+}
 </script>
 
 <template>
@@ -59,6 +68,7 @@ function selectContentRange(range: { start: number; end: number }) {
           :preview="preview"
           :is-valid="isValid"
           :has-content="hasContent"
+          @focus-invalid="focusFirstInvalid"
         />
         <p v-if="submitError" class="text-sm text-destructive">{{ submitError }}</p>
         <PayloadPreview :payload="submitted" />
