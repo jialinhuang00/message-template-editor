@@ -9,10 +9,12 @@ import ValidationErrorList from './ValidationErrorList.vue'
 import PayloadPreview from './PayloadPreview.vue'
 import { useTemplateForm } from '@/composables/useTemplateForm'
 import { useVariablePreview } from '@/composables/useVariablePreview'
+import { useChatSounds } from '@/composables/useChatSounds'
 
 const { form, content, language, errors, isValid, dirty, submitted, isSubmitting, submitError, submit } =
   useTemplateForm()
 const { preview } = useVariablePreview(content, language)
+const { muted, messageSent } = useChatSounds()
 
 const hasContent = computed(() => form.content.trim().length > 0)
 
@@ -25,19 +27,30 @@ watch(
   () => {
     isTyping.value = true
     clearTimeout(typingTimer)
-    typingTimer = setTimeout(() => (isTyping.value = false), 700)
+    typingTimer = setTimeout(() => {
+      isTyping.value = false
+      // 700ms after the last keystroke the message "sends": the caret drops, the
+      // timestamp appears, and one send sound plays — consistent across channels.
+      if (form.content.trim()) messageSent()
+    }, 700)
   },
 )
 
 const editorRef = ref<InstanceType<typeof MessageContentEditor> | null>(null)
-function selectContentRange(range: { start: number; end: number }) {
-  editorRef.value?.selectRange(range.start, range.end)
-}
 
 function focusField(id: string) {
   const el = document.getElementById(id)
   el?.focus()
   el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+}
+
+/** Clicking an error jumps to its field; brace errors also select the offending text. */
+function onSelectError(error: (typeof errors.value)[number]) {
+  if (error.field === 'content' && error.range) {
+    editorRef.value?.selectRange(error.range.start, error.range.end)
+    return
+  }
+  focusField(error.field)
 }
 
 /** Jump to the first field that fails validation (fields share their name with their id). */
@@ -62,7 +75,7 @@ function focusFirstInvalid() {
 
     <div class="grid items-start gap-6 md:grid-cols-[1.15fr_0.85fr]">
       <!-- Editor -->
-      <Card>
+      <Card class="min-w-0">
         <CardContent class="space-y-6 pt-6">
           <TemplateBasicForm
             v-model:name="form.name"
@@ -79,7 +92,7 @@ function focusFirstInvalid() {
       </Card>
 
       <!-- Preview + validation + payload (sticky) -->
-      <div class="space-y-6 md:sticky md:top-4">
+      <div class="min-w-0 space-y-6 md:sticky md:top-4">
         <MessagePreviewCard
           :channel="form.channel"
           :title="form.title"
@@ -88,11 +101,15 @@ function focusFirstInvalid() {
           :has-content="hasContent"
           :typing="isTyping"
           :show-status="dirty"
+          v-model:muted="muted"
           @focus-invalid="focusFirstInvalid"
           @focus-channel="focusField('channel')"
         />
 
-        <Card>
+        <!-- A successful submit implies validation passed, so the payload takes
+             the validation slot; editing again clears it and validation returns. -->
+        <PayloadPreview v-if="submitted" :payload="submitted" />
+        <Card v-else>
           <CardHeader>
             <CardTitle>
               Validation
@@ -108,7 +125,7 @@ function focusFirstInvalid() {
             <ValidationErrorList
               v-else-if="errors.length"
               :errors="errors"
-              @select="selectContentRange"
+              @select="onSelectError"
             />
             <p v-else class="text-sm font-medium text-green-700 dark:text-green-400">
               All checks pass — ready to submit.
@@ -117,7 +134,6 @@ function focusFirstInvalid() {
         </Card>
 
         <p v-if="submitError" class="text-sm text-destructive">{{ submitError }}</p>
-        <PayloadPreview :payload="submitted" />
       </div>
     </div>
   </div>

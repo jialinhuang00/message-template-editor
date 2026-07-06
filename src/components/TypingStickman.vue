@@ -1,48 +1,37 @@
 <script setup lang="ts">
-// Typewriter-caret "composing" animation, ported from css-decode/animations
-// (TypingStickman): a monospace line that types out and back with a blinking caret.
-withDefaults(defineProps<{ text?: string }>(), { text: 'typing a message…' })
+// Live "composing" text: renders the actual message (driven by the real input
+// value) and optionally a blinking caret at the end. The text span is always the
+// same element, so it updates in place as the author types — no re-mount, no flash.
+withDefaults(defineProps<{ text?: string; caret?: boolean }>(), { text: '', caret: true })
 </script>
 
 <template>
-  <span class="typing-stickman">{{ text }}</span>
+  <span class="typing-stickman"
+    ><span class="whitespace-pre-wrap break-words">{{ text }}</span
+    ><span v-if="caret" class="caret" aria-hidden="true"></span
+  ></span>
 </template>
 
 <style scoped>
 .typing-stickman {
+  display: inline;
+}
+.caret {
   display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  border-right: 2px solid currentColor;
-  font-family: monospace;
-  font-size: 13px;
-  animation:
-    stickmanTyping 4s steps(24, end) infinite,
-    stickmanBlink 0.6s step-end infinite;
+  width: 2px;
+  height: 1.1em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  background: currentColor;
+  animation: caretBlink 1s step-end infinite;
 }
-@keyframes stickmanTyping {
-  0%,
-  10% {
-    width: 0;
-  }
-  50%,
-  70% {
-    width: 100%;
-  }
-  85%,
-  100% {
-    width: 0;
-  }
-}
-@keyframes stickmanBlink {
+@keyframes caretBlink {
   50% {
-    border-color: transparent;
+    opacity: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .typing-stickman {
-    width: auto;
+  .caret {
     animation: none;
   }
 }
