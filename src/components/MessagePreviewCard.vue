@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Channel } from '@/types'
 
-defineProps<{
+const props = defineProps<{
   channel: Channel | ''
   title: string
   preview: string
@@ -11,6 +12,17 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{ focusInvalid: [] }>()
+
+/** Stylised (not pixel-accurate) per-channel colours, so the preview reads as that app. */
+const CHANNEL_THEME: Record<Channel, { bar: string; bubble: string; bubbleText: string; wall: string }> = {
+  WhatsApp: { bar: '#075e54', bubble: '#dcf8c6', bubbleText: '#111827', wall: '#e5ddd5' },
+  LINE: { bar: '#06c755', bubble: '#ffffff', bubbleText: '#111827', wall: '#8ca6c8' },
+  Messenger: { bar: '#0084ff', bubble: '#e4e6eb', bubbleText: '#111827', wall: '#eef0f3' },
+}
+const NEUTRAL = { bar: '#6b7280', bubble: '#ffffff', bubbleText: '#111827', wall: '#e5e7eb' }
+
+const theme = computed(() => (props.channel ? CHANNEL_THEME[props.channel] : NEUTRAL))
+const initial = computed(() => (props.channel ? props.channel[0] : '?'))
 </script>
 
 <template>
@@ -36,17 +48,32 @@ const emit = defineEmits<{ focusInvalid: [] }>()
       </div>
     </CardHeader>
 
-    <CardContent class="space-y-3">
-      <div class="flex flex-wrap gap-2 text-xs text-muted-foreground">
-        <span class="rounded bg-muted px-2 py-0.5">{{ channel || 'No channel' }}</span>
+    <CardContent>
+      <div class="overflow-hidden rounded-xl" :style="{ backgroundColor: theme.wall }">
+        <div
+          class="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-white"
+          :style="{ backgroundColor: theme.bar }"
+        >
+          <span class="grid h-7 w-7 place-items-center rounded-full bg-white/25 text-xs">
+            {{ initial }}
+          </span>
+          {{ channel || 'No channel selected' }}
+        </div>
+
+        <div class="flex min-h-[180px] flex-col p-3">
+          <div
+            v-if="hasContent"
+            class="max-w-[85%] rounded-lg px-3 py-2 text-sm shadow-sm"
+            :style="{ backgroundColor: theme.bubble, color: theme.bubbleText }"
+          >
+            <span v-if="title" class="mb-1 block font-bold">{{ title }}</span>
+            <span class="whitespace-pre-wrap break-words">{{ preview }}</span>
+          </div>
+          <p v-else class="m-auto text-sm text-black/45 italic">
+            Your message preview will appear here.
+          </p>
+        </div>
       </div>
-
-      <p v-if="title" class="font-semibold">{{ title }}</p>
-
-      <p v-if="hasContent" class="text-sm whitespace-pre-wrap break-words">{{ preview }}</p>
-      <p v-else class="text-sm text-muted-foreground italic">
-        Your message preview will appear here.
-      </p>
     </CardContent>
   </Card>
 </template>

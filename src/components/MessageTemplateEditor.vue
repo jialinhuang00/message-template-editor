@@ -45,7 +45,7 @@ function focusFirstInvalid() {
       </Button>
     </header>
 
-    <div class="grid gap-6 md:grid-cols-2">
+    <div class="grid items-start gap-6 md:grid-cols-[1.15fr_0.85fr]">
       <!-- Editor -->
       <Card>
         <CardContent class="space-y-6 pt-6">
@@ -56,12 +56,11 @@ function focusFirstInvalid() {
             v-model:title="form.title"
           />
           <MessageContentEditor ref="editorRef" v-model="form.content" :language="form.language" />
-          <ValidationErrorList :errors="errors" @select="selectContentRange" />
         </CardContent>
       </Card>
 
-      <!-- Preview -->
-      <div class="space-y-6">
+      <!-- Preview + validation + payload (sticky) -->
+      <div class="space-y-6 md:sticky md:top-4">
         <MessagePreviewCard
           :channel="form.channel"
           :title="form.title"
@@ -70,6 +69,16 @@ function focusFirstInvalid() {
           :has-content="hasContent"
           @focus-invalid="focusFirstInvalid"
         />
+
+        <Card>
+          <CardContent class="pt-6">
+            <ValidationErrorList v-if="errors.length" :errors="errors" @select="selectContentRange" />
+            <p v-else class="text-sm font-medium text-green-700 dark:text-green-400">
+              All checks pass — ready to submit.
+            </p>
+          </CardContent>
+        </Card>
+
         <p v-if="submitError" class="text-sm text-destructive">{{ submitError }}</p>
         <PayloadPreview :payload="submitted" />
       </div>
