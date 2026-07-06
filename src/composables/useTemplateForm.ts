@@ -1,4 +1,4 @@
-import { computed, reactive, ref, toRef } from 'vue'
+import { computed, reactive, ref, toRef, watch } from 'vue'
 import { buildPayload } from '@/lib/payload'
 import { submitTemplate } from '@/lib/submit'
 import { validateTemplate } from '@/lib/validation'
@@ -17,11 +17,16 @@ export function useTemplateForm() {
   const errors = computed<ValidationError[]>(() => validateTemplate(form))
   const isValid = computed(() => errors.value.length === 0)
 
+  // Only surface errors once the user has engaged: blaming an untouched form is hostile.
+  const dirty = ref(false)
+  watch(form, () => (dirty.value = true), { deep: true })
+
   const submitted = ref<SubmitPayload | null>(null)
   const isSubmitting = ref(false)
   const submitError = ref<string | null>(null)
 
   async function submit() {
+    dirty.value = true
     submitted.value = null
     submitError.value = null
     if (!isValid.value) return
@@ -42,6 +47,7 @@ export function useTemplateForm() {
     language: toRef(form, 'language'),
     errors,
     isValid,
+    dirty,
     submitted,
     isSubmitting,
     submitError,

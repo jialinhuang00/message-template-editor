@@ -10,7 +10,7 @@ import PayloadPreview from './PayloadPreview.vue'
 import { useTemplateForm } from '@/composables/useTemplateForm'
 import { useVariablePreview } from '@/composables/useVariablePreview'
 
-const { form, content, language, errors, isValid, submitted, isSubmitting, submitError, submit } =
+const { form, content, language, errors, isValid, dirty, submitted, isSubmitting, submitError, submit } =
   useTemplateForm()
 const { preview } = useVariablePreview(content, language)
 
@@ -21,13 +21,15 @@ function selectContentRange(range: { start: number; end: number }) {
   editorRef.value?.selectRange(range.start, range.end)
 }
 
-/** Jump to the first field that fails validation (fields share their name with their id). */
-function focusFirstInvalid() {
-  const first = errors.value[0]
-  if (!first) return
-  const el = document.getElementById(first.field)
+function focusField(id: string) {
+  const el = document.getElementById(id)
   el?.focus()
   el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+}
+
+/** Jump to the first field that fails validation (fields share their name with their id). */
+function focusFirstInvalid() {
+  if (errors.value[0]) focusField(errors.value[0].field)
 }
 </script>
 
@@ -67,20 +69,29 @@ function focusFirstInvalid() {
           :preview="preview"
           :is-valid="isValid"
           :has-content="hasContent"
+          :show-status="dirty"
           @focus-invalid="focusFirstInvalid"
+          @focus-channel="focusField('channel')"
         />
 
         <Card>
           <CardHeader>
             <CardTitle>
               Validation
-              <span v-if="errors.length" class="ml-1 text-sm font-normal text-destructive">
+              <span v-if="dirty && errors.length" class="ml-1 text-sm font-normal text-destructive">
                 · {{ errors.length }} {{ errors.length > 1 ? 'issues' : 'issue' }}
               </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ValidationErrorList v-if="errors.length" :errors="errors" @select="selectContentRange" />
+            <p v-if="!dirty" class="text-sm text-muted-foreground">
+              Fill in the form to validate.
+            </p>
+            <ValidationErrorList
+              v-else-if="errors.length"
+              :errors="errors"
+              @select="selectContentRange"
+            />
             <p v-else class="text-sm font-medium text-green-700 dark:text-green-400">
               All checks pass — ready to submit.
             </p>

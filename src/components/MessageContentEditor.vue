@@ -83,6 +83,13 @@ defineExpose({ selectRange })
       :placeholder="example"
       @keydown="onKeydown"
     />
-    <p class="text-xs text-muted-foreground">Tip: press Tab in the empty box to load an example.</p>
+    <p class="flex items-center gap-1 text-xs text-muted-foreground">
+      Tip: press
+      <kbd
+        class="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-foreground shadow-sm"
+        >Tab</kbd
+      >
+      in the empty box to load an example.
+    </p>
   </div>
 </template>

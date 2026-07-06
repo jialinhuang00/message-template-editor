@@ -11,7 +11,7 @@ const emit = defineEmits<{ select: [range: { start: number; end: number }] }>()
       <button
         v-if="error.range"
         type="button"
-        class="block w-full text-left hover:underline"
+        class="hint block w-full cursor-pointer rounded px-1 text-left hover:bg-destructive/5 hover:underline"
         @click="emit('select', error.range)"
       >
         <span>{{ error.message }}</span>
@@ -25,3 +25,24 @@ const emit = defineEmits<{ select: [range: { start: number; end: number }] }>()
     </li>
   </ul>
 </template>
+
+<style scoped>
+/* A brief pulse on appearance hints the item is clickable, then settles. */
+@keyframes clickHint {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  45% {
+    background-color: rgba(220, 38, 38, 0.12);
+  }
+}
+.hint {
+  animation: clickHint 0.9s ease-in-out 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint {
+    animation: none;
+  }
+}
+</style>
