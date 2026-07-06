@@ -33,21 +33,22 @@ const LANGUAGE_LABEL: Record<Language, string> = {
     <div class="grid grid-cols-2 gap-4">
       <div class="space-y-2">
         <Label>Channel <span class="text-destructive">*</span></Label>
-        <div id="channel" tabindex="-1" class="grid grid-cols-3 gap-2 outline-none">
+        <div id="channel" tabindex="-1" class="flex gap-2 outline-none">
           <button
             v-for="c in CHANNELS"
             :key="c"
             type="button"
-            class="flex flex-col items-center justify-center gap-1 rounded-md border px-1 py-2 text-xs transition-colors"
+            :title="c"
+            :aria-label="c"
+            class="flex items-center justify-center rounded-md border p-2 transition-colors"
             :class="
               channel === c
-                ? 'border-primary bg-accent font-medium text-accent-foreground'
+                ? 'border-primary bg-accent text-accent-foreground'
                 : 'border-border text-muted-foreground hover:bg-accent/50'
             "
             @click="channel = c"
           >
-            <component :is="CHANNEL_ICON[c]" class="h-4 w-4" />
-            {{ c }}
+            <component :is="CHANNEL_ICON[c]" class="h-5 w-5" />
           </button>
         </div>
       </div>
