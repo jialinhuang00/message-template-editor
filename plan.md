@@ -137,3 +137,12 @@ AI 使用五題:
 - [ ] 2–5 個關鍵 prompt
 - [ ] ≥2 個沒直接採用的 AI 建議(例:擋掉 EC2 後端、擋掉 rich text editor)
 - [ ] 怎麼驗證 AI 產出(Vitest 對驗證函式、type check、逐條 edge case)
+
+---
+
+## Additions(backlog,延後、非規格必需)
+
+停在這裡的加分項,按優先序:
+
+1. **Channel 擬真細節** — 讓每個 channel 的 preview 更像真 app:LINE 圓角氣泡、Messenger 頭像、時間戳 + 已讀勾勾。目前顏色 + 頻道 bar 已能分辨 channel,這是下一層擬真。
+2. **localStorage 存 template** — submit 過的存進 localStorage、列清單、點了載回表單。沒後端也能模擬範本庫。規格不要求 persist(submit 只需顯示 payload),所以這是加分,順便補強「存模板、不是發訊息」的產品語意。
