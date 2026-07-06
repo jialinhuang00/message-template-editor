@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import MessageTemplateEditor from '@/components/MessageTemplateEditor.vue'
 </script>
 
 <template>
-  <HelloWorld />
+  <div class="mx-auto max-w-5xl p-6">
+    <MessageTemplateEditor />
+  </div>
 </template>
