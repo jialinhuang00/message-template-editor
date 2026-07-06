@@ -13,6 +13,7 @@ Live demo: https://mte.jialin00.com
 pnpm install
 pnpm dev        # http://localhost:5173
 pnpm test       # Vitest (validation unit tests)
+pnpm test:e2e   # Playwright (browser end-to-end tests)
 pnpm lint       # ESLint (Vue + TypeScript)
 pnpm build      # type-check (vue-tsc) + production build
 ```
@@ -40,7 +41,7 @@ pnpm test:e2e   # Playwright
 - **Vite** build
 - **Tailwind CSS v4** + **shadcn-vue** components
 - **unplugin-icons** (brand channel icons from Simple Icons)
-- **Vitest** unit tests
+- **Vitest** unit tests + **Playwright** end-to-end tests
 - **ESLint** (`@vue/eslint-config-typescript`, flat config)
 
 ## Architecture
@@ -62,9 +63,11 @@ src/
 ├── composables/
 │   ├── useTemplateForm.ts      form state + live validation + submit round-trip
 │   ├── useVariablePreview.ts   mock substitution for the preview
-│   └── useChatSounds.ts        Web Audio send sound (synthesised, no assets)
+│   ├── useChatSounds.ts        Web Audio send sound (synthesised, no assets)
+│   └── useTemplateLibrary.ts   saved templates in localStorage (save/overwrite)
 └── components/
     ├── MessageTemplateEditor.vue   container, owns the state
+    ├── TemplateLibrarySelect.vue   load a saved template into the form
     ├── TemplateBasicForm.vue       name / channel / language / title
     ├── MessageContentEditor.vue    textarea, cursor insertion, Tab-to-fill example
     ├── VariableInsertToolbar.vue   variable buttons
@@ -136,6 +139,11 @@ is a syntax error, which takes priority over interpreting the inner text.
   detail matches each app: WhatsApp shows a "typing…" status and in-bubble time, LINE puts the
   time beside the bubble, Messenger shows neither. Sounds are synthesised with the Web Audio
   API (no audio files) and default-on with a mute toggle.
+- **The template library saves by id, not by append-only.** A submitted template is stored in
+  localStorage with a `crypto.randomUUID()`. Loading one back into the form carries its id, so
+  re-submitting overwrites that entry instead of duplicating it; a fresh template appends. A
+  successful submit clears the form for the next entry while the payload panel keeps showing
+  what was just saved.
 - **Validation lives in the preview column and only appears after the first edit.** The
   reference tree puts errors under the editor; moving them balances the two columns. Showing
   them on an untouched form would blame the user before they've done anything, so a `dirty`
@@ -180,8 +188,8 @@ driven by screenshots (channel-accurate previews, the composing animation, send 
 - AI suggested plain scoped CSS with no UI library; I chose shadcn-vue instead.
 - AI's first validation grouped two malformed tokens into one error; I pointed out they
   should be separate, so it now reports one error per brace cluster.
-- AI said the brief only needs to display the payload on submit; I want a localStorage
-  template library (parked as a backlog item).
+- AI said the brief only needs to display the payload on submit; I added a localStorage
+  template library on top, so submitted templates can be reloaded, edited, and overwritten.
 - AI's Messenger preview used a grey background; I corrected it to white with grey bubbles.
 - AI's first send animation re-mounted the bubble and flashed on every send; I switched to a
   single persistent bubble that only toggles the caret and timestamp in place.
@@ -192,6 +200,8 @@ driven by screenshots (channel-accurate previews, the composing animation, send 
   validation rules and malformed-syntax edge cases.
 - TypeScript type-checking (`vue-tsc --noEmit`) after every change; zero errors before commit.
 - ESLint (`@vue/eslint-config-typescript`) with zero warnings.
+- Playwright end-to-end tests (3) in a real browser: error-click focus, channel switch, and
+  Tab-to-fill.
 - Manual edge-case testing in the dev server (missing braces, unknown variables, consecutive
   spaces) watching the preview and error reactions.
 - A section-by-section cross-check against the requirements.
@@ -199,18 +209,18 @@ driven by screenshots (channel-accurate previews, the composing animation, send 
 ## Known limitations
 
 - No backend. `submitTemplate` is a fake async that echoes the payload after a short delay.
-- No persistence; submitted templates are not saved (see backlog).
+- Persistence is localStorage-only (this branch). Templates survive a reload but live in the
+  browser, not a server.
 - The channel preview is identity-level, not pixel-level: palette, layout landmarks, and read
   receipts match each app, but it does not clone exact fonts, bubble tails, or the full
   sent/delivered/read progression.
 - Preview sounds are synthesised approximations, not the real (copyrighted) branded sounds.
 - Variable names accept `\w+` only (no Unicode identifiers).
-- Cursor insertion reaches the textarea via the shadcn component's `$el`.
+- Cursor insertion depends on the shadcn Textarea's internal `$el`; a shadcn refactor could
+  break it.
 
 ## What I'd improve with more time
 
-- Save templates to localStorage with a re-loadable template list.
-- Playwright E2E over the real browser flow (form → live preview → submit → payload).
 - Message-state progression in the preview (sent vs delivered vs read), not just the read state.
 - Component tests with `@vue/test-utils`, on top of the pure-function unit tests.
 - Localize the editor UI itself, not just the preview mock data.
