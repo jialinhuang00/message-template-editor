@@ -19,6 +19,21 @@ pnpm build      # type-check (vue-tsc) + production build
 
 Requires Node 22+ and pnpm 10 (pinned via the `packageManager` field).
 
+## On a branch
+
+Two backlog items are built on `feat/localstorage-template-library`, kept off `main` so the
+core submission stays focused. Check it out to run them:
+
+```bash
+git checkout feat/localstorage-template-library
+pnpm test:e2e   # Playwright
+```
+
+- **localStorage template library** — submitting saves the template; a selector re-loads saved
+  ones (overwrite by id, or append a new one).
+- **Playwright E2E** — the real browser flow: validation focus, channel switch, Tab-to-fill,
+  variable insert + substitution, submit-saves-and-clears.
+
 ## Tech stack
 
 - **Vue 3** (`<script setup lang="ts">`, Composition API) + **TypeScript**
