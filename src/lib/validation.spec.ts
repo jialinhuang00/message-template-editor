@@ -66,6 +66,12 @@ describe('validateTemplate', () => {
       expect(msgs).toContain('Unknown variable: bar')
     })
 
+    it('flags a balanced token whose name is not a valid identifier', () => {
+      expect(messages(validForm({ content: '{{ dsada.com }}' }))).toContain(
+        'Invalid variable name: dsada.com',
+      )
+    })
+
     it('flags a missing closing brace as invalid syntax', () => {
       expect(syntaxErrors(validForm({ content: 'Hi {{ customer_name }' }))).toHaveLength(1)
     })

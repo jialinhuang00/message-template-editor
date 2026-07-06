@@ -1,10 +1,7 @@
 import type { Channel, TemplateForm, ValidationError } from '@/types'
-import { VARIABLE_TOKEN, extractVariableNames, isSupportedVariable } from '@/lib/variables'
+import { isSupportedVariable } from '@/lib/variables'
 
 export const MAX_CONTENT_LENGTH = 500
-
-/** How many characters of surrounding context to show around a malformed region. */
-const SYNTAX_CONTEXT_PAD = 8
 
 /**
  * Channel-specific content rules. Each returns an error message or `null`.
@@ -19,42 +16,60 @@ const CHANNEL_RULES: Partial<Record<Channel, ((content: string) => string | null
   ],
 }
 
-/** Character ranges covered by well-formed `{{ variable }}` tokens. */
-function tokenRanges(content: string): [number, number][] {
-  return [...content.matchAll(VARIABLE_TOKEN)].map((m) => [m.index, m.index + m[0].length])
+/** How many characters of context to show on each side of an offending snippet. */
+const CONTEXT_PAD = 3
+
+/** The offending text plus a little surrounding context, with `…` where it is clipped. */
+function contextSnippet(content: string, start: number, end: number): string {
+  const from = Math.max(0, start - CONTEXT_PAD)
+  const to = Math.min(content.length, end + CONTEXT_PAD)
+  const prefix = from > 0 ? '…' : ''
+  const suffix = to < content.length ? '…' : ''
+  return `${prefix}${content.slice(from, to)}${suffix}`
+}
+
+/** A brace cluster: a `{...}` run, or a dangling run of `{` or `}`. */
+const BRACE_CLUSTER = /\{+[^{}]*\}+|\{+|\}+/g
+/** Exactly `{{ identifier }}` — a well-formed token. */
+const VALID_TOKEN = /^\{\{\s*(\w+)\s*\}\}$/
+/** Balanced `{{ ... }}` whose inner text is not a bare identifier. */
+const DOUBLE_BRACED = /^\{\{\s*(.*?)\s*\}\}$/
+
+/** Turn one brace cluster into an error message, or null if it is a valid token. */
+function classifyCluster(raw: string): string | null {
+  const token = raw.match(VALID_TOKEN)
+  if (token) {
+    const name = token[1]
+    return isSupportedVariable(name) ? null : `Unknown variable: ${name}`
+  }
+
+  const braced = raw.match(DOUBLE_BRACED)
+  if (braced) {
+    return `Invalid variable name: ${braced[1] || '(empty)'}`
+  }
+
+  return 'Invalid variable syntax'
 }
 
 /**
- * Locate malformed brace regions: braces not part of a well-formed token, grouped into
- * regions and split wherever a well-formed token sits between them. So
- * `{{ order_id }. {{ customer_name }}{ customer_name }` yields two regions:
- * `{{ order_id }` and `{ customer_name }`.
+ * Every brace-cluster problem in the content, each with the offending snippet and a
+ * range so the UI can select it. One cluster yields at most one error, e.g.
+ * `Hi {{ customer_name }, order { order_id }} {{ x.y }}` gives three distinct reasons.
  */
-function malformedRanges(content: string): { start: number; end: number }[] {
-  const ranges = tokenRanges(content)
-  const inToken = (i: number) => ranges.some(([s, e]) => i >= s && i < e)
-  const tokenBetween = (a: number, b: number) => ranges.some(([s, e]) => s > a && e <= b)
-
-  const strays: number[] = []
-  for (let i = 0; i < content.length; i++) {
-    const ch = content[i]
-    if ((ch === '{' || ch === '}') && !inToken(i)) strays.push(i)
+function variableErrors(content: string): ValidationError[] {
+  const errors: ValidationError[] = []
+  for (const m of content.matchAll(BRACE_CLUSTER)) {
+    const message = classifyCluster(m[0])
+    if (message) {
+      errors.push({
+        field: 'content',
+        message,
+        snippet: contextSnippet(content, m.index, m.index + m[0].length),
+        range: { start: m.index, end: m.index + m[0].length },
+      })
+    }
   }
-
-  const regions: { start: number; end: number }[] = []
-  let group: number[] = []
-  const flush = () => {
-    if (group.length) regions.push({ start: group[0], end: group[group.length - 1] + 1 })
-    group = []
-  }
-
-  for (const idx of strays) {
-    if (group.length && tokenBetween(group[group.length - 1], idx)) flush()
-    group.push(idx)
-  }
-  flush()
-
-  return regions
+  return errors
 }
 
 /**
@@ -76,25 +91,7 @@ export function validateTemplate(form: TemplateForm): ValidationError[] {
     })
   }
 
-  // Unknown variables: well-formed tokens whose name is not supported.
-  for (const varName of extractVariableNames(content)) {
-    if (!isSupportedVariable(varName)) {
-      errors.push({ field: 'content', message: `Unknown variable: ${varName}` })
-    }
-  }
-
-  // Invalid syntax: one error per malformed region, with a located context snippet
-  // (e.g. `{{ customer_name }` or `{ customer_name }}`).
-  for (const { start, end } of malformedRanges(content)) {
-    const from = Math.max(0, start - SYNTAX_CONTEXT_PAD)
-    const to = Math.min(content.length, end + SYNTAX_CONTEXT_PAD)
-    const snippet = content.slice(from, to).trim()
-    errors.push({
-      field: 'content',
-      message: `Invalid variable syntax near "${snippet}"`,
-      range: { start, end },
-    })
-  }
+  errors.push(...variableErrors(content))
 
   // Channel-specific rules.
   if (channel) {
