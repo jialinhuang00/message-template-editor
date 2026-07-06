@@ -19,41 +19,52 @@ const CHANNEL_RULES: Partial<Record<Channel, ((content: string) => string | null
 /** How many characters of context to show on each side of an offending snippet. */
 const CONTEXT_PAD = 3
 
-/** The offending text plus a little surrounding context, with `…` where it is clipped. */
+/**
+ * The offending text plus a little surrounding context, with `…` where it is clipped.
+ * Context stops at any adjacent brace so the snippet never bleeds into a neighbouring
+ * token — otherwise `{{ customer_name } {{ order_id }}` would show `{{ customer_name } {{…`
+ * and read as if the error spanned two tokens.
+ */
 function contextSnippet(content: string, start: number, end: number): string {
-  const from = Math.max(0, start - CONTEXT_PAD)
-  const to = Math.min(content.length, end + CONTEXT_PAD)
+  let from = start
+  for (let i = 0; i < CONTEXT_PAD && from > 0 && !isBrace(content[from - 1]); i++) from--
+  let to = end
+  for (let i = 0; i < CONTEXT_PAD && to < content.length && !isBrace(content[to]); i++) to++
   const prefix = from > 0 ? '…' : ''
   const suffix = to < content.length ? '…' : ''
   return `${prefix}${content.slice(from, to)}${suffix}`
 }
 
+function isBrace(ch: string): boolean {
+  return ch === '{' || ch === '}'
+}
+
 /** A brace cluster: a `{...}` run, or a dangling run of `{` or `}`. */
 const BRACE_CLUSTER = /\{+[^{}]*\}+|\{+|\}+/g
-/** Exactly `{{ identifier }}` — a well-formed token. */
-const VALID_TOKEN = /^\{\{\s*(\w+)\s*\}\}$/
-/** Balanced `{{ ... }}` whose inner text is not a bare identifier. */
-const DOUBLE_BRACED = /^\{\{\s*(.*?)\s*\}\}$/
 
 /**
  * Turn one brace cluster into an error, or null if it is a valid token.
  * `withContext` is true only when the message alone does not identify the offender
  * (generic syntax errors), so the UI shows a locating snippet just for those.
+ *
+ * Brace count is checked first: anything other than exactly `{{ … }}` is a syntax
+ * problem, which takes priority over whatever the inner text looks like — so
+ * `{{{ customer_name }}}` reads as bad syntax, not a variable named `{ customer_name`.
  */
 function classifyCluster(raw: string): { message: string; withContext: boolean } | null {
-  const token = raw.match(VALID_TOKEN)
-  if (token) {
-    const name = token[1]
+  const open = raw.match(/^\{+/)?.[0].length ?? 0
+  const close = raw.match(/\}+$/)?.[0].length ?? 0
+  if (open !== 2 || close !== 2) {
+    return { message: 'Invalid variable syntax', withContext: true }
+  }
+
+  const name = raw.slice(open, raw.length - close).trim()
+  if (/^\w+$/.test(name)) {
     if (isSupportedVariable(name)) return null
     return { message: `Unknown variable: ${name}`, withContext: false }
   }
 
-  const braced = raw.match(DOUBLE_BRACED)
-  if (braced) {
-    return { message: `Invalid variable name: ${braced[1] || '(empty)'}`, withContext: false }
-  }
-
-  return { message: 'Invalid variable syntax', withContext: true }
+  return { message: `Invalid variable name: ${name || '(empty)'}`, withContext: false }
 }
 
 /**

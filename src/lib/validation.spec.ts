@@ -84,6 +84,12 @@ describe('validateTemplate', () => {
       expect(syntaxErrors(validForm())).toHaveLength(0)
     })
 
+    it('flags extra braces as syntax, not a mis-named variable', () => {
+      const form = validForm({ content: '{{{ customer_name }}}' })
+      expect(syntaxErrors(form)).toHaveLength(1)
+      expect(messages(form)).not.toContain('Invalid variable name: { customer_name')
+    })
+
     it('locates each malformed region separately, split by valid tokens', () => {
       const errors = syntaxErrors(
         validForm({ content: '{{ order_id }. {{ customer_name }}{ customer_name }' }),
