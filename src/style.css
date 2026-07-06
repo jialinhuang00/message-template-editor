@@ -126,4 +126,9 @@
     @apply bg-background text-foreground;
     @apply font-sans;
     }
+  /* Tailwind v4 preflight no longer sets this; restore the pointer on controls. */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+    }
 }

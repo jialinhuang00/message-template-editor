@@ -2,17 +2,16 @@
 import type { ValidationError } from '@/types'
 
 defineProps<{ errors: ValidationError[] }>()
-const emit = defineEmits<{ select: [range: { start: number; end: number }] }>()
+const emit = defineEmits<{ select: [error: ValidationError] }>()
 </script>
 
 <template>
   <ul v-if="errors.length" class="list-disc space-y-2 pl-5 text-sm text-destructive">
     <li v-for="(error, i) in errors" :key="`${error.field}-${i}`">
       <button
-        v-if="error.range"
         type="button"
         class="hint block w-full cursor-pointer rounded px-1 text-left hover:bg-destructive/5 hover:underline"
-        @click="emit('select', error.range)"
+        @click="emit('select', error)"
       >
         <span>{{ error.message }}</span>
         <code
@@ -21,7 +20,6 @@ const emit = defineEmits<{ select: [range: { start: number; end: number }] }>()
           >{{ error.snippet }}</code
         >
       </button>
-      <span v-else>{{ error.message }}</span>
     </li>
   </ul>
 </template>

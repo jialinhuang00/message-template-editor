@@ -8,7 +8,7 @@ import type { SubmitPayload, TemplateForm, ValidationError } from '@/types'
 export function useTemplateForm() {
   const form = reactive<TemplateForm>({
     name: '',
-    channel: '',
+    channel: 'LINE',
     language: 'en',
     title: '',
     content: '',
@@ -17,11 +17,21 @@ export function useTemplateForm() {
   const errors = computed<ValidationError[]>(() => validateTemplate(form))
   const isValid = computed(() => errors.value.length === 0)
 
-  // Only surface errors once the user has engaged: blaming an untouched form is hostile.
-  const dirty = ref(false)
-  watch(form, () => (dirty.value = true), { deep: true })
-
   const submitted = ref<SubmitPayload | null>(null)
+
+  // Only surface errors once the user has engaged: blaming an untouched form is hostile.
+  // Any edit after a submit also drops the (now stale) payload, so the validation
+  // panel takes the slot back.
+  const dirty = ref(false)
+  watch(
+    form,
+    () => {
+      dirty.value = true
+      submitted.value = null
+    },
+    { deep: true },
+  )
+
   const isSubmitting = ref(false)
   const submitError = ref<string | null>(null)
 

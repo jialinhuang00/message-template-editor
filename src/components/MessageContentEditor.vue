@@ -31,16 +31,16 @@ function insertVariable(name: string) {
   const token = `{{ ${name} }}`
   const el = textareaEl()
   const value = content.value
+  const end = el?.selectionEnd ?? value.length
+  const start = el?.selectionStart ?? value.length
 
-  if (!el) {
-    content.value = value + token
-    return
-  }
+  // Separate the token from a preceding word with a space, but not at the start
+  // of the line or when whitespace is already there.
+  const before = value.slice(0, start)
+  const insert = (before && !/\s$/.test(before) ? ' ' : '') + token
 
-  const start = el.selectionStart ?? value.length
-  const end = el.selectionEnd ?? value.length
-  content.value = value.slice(0, start) + token + value.slice(end)
-  setCaret(start + token.length)
+  content.value = before + insert + value.slice(end)
+  setCaret(start + insert.length)
 }
 
 /** Tab on empty content accepts the example instead of moving focus (iykyk). */
