@@ -35,6 +35,29 @@ pnpm test:e2e   # Playwright
 - **Playwright E2E** — the real browser flow: validation focus, channel switch, Tab-to-fill,
   variable insert + substitution, submit-saves-and-clears.
 
+## Testing
+
+Two layers: Vitest for the pure logic, Playwright for the browser flow.
+
+| Command | What it does |
+|---|---|
+| `pnpm test` | Vitest once (validation unit tests) |
+| `pnpm test:watch` | Vitest in watch mode while editing |
+| `pnpm test:e2e` | Playwright headless, the fast default |
+| `pnpm test:e2e:watch` | Playwright headed + slowed (`PW_SLOWMO=1000`) so you can watch it click through |
+
+You don't need to start the dev server first: Playwright's `webServer` boots `pnpm dev` on
+:5173 and reuses one that's already running.
+
+More knobs on the e2e run:
+
+```bash
+PW_SLOWMO=500 pnpm test:e2e --headed   # watch it, at your own pace (ms per action)
+pnpm test:e2e --ui                     # Playwright's interactive runner (time-travel, picker)
+pnpm test:e2e --debug                  # step through with the inspector
+pnpm test:e2e -g "channel switch"      # run one test by title
+```
+
 ## Tech stack
 
 - **Vue 3** (`<script setup lang="ts">`, Composition API) + **TypeScript**
@@ -200,8 +223,8 @@ driven by screenshots (channel-accurate previews, the composing animation, send 
   validation rules and malformed-syntax edge cases.
 - TypeScript type-checking (`vue-tsc --noEmit`) after every change; zero errors before commit.
 - ESLint (`@vue/eslint-config-typescript`) with zero warnings.
-- Playwright end-to-end tests (3) in a real browser: error-click focus, channel switch, and
-  Tab-to-fill.
+- Playwright end-to-end tests (7) in a real browser: validation + error-click focus, channel
+  switch, Tab-to-fill, variable insert + live substitution, and the submit/save/import flow.
 - Manual edge-case testing in the dev server (missing braces, unknown variables, consecutive
   spaces) watching the preview and error reactions.
 - A section-by-section cross-check against the requirements.
