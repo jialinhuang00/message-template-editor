@@ -35,20 +35,25 @@ const VALID_TOKEN = /^\{\{\s*(\w+)\s*\}\}$/
 /** Balanced `{{ ... }}` whose inner text is not a bare identifier. */
 const DOUBLE_BRACED = /^\{\{\s*(.*?)\s*\}\}$/
 
-/** Turn one brace cluster into an error message, or null if it is a valid token. */
-function classifyCluster(raw: string): string | null {
+/**
+ * Turn one brace cluster into an error, or null if it is a valid token.
+ * `withContext` is true only when the message alone does not identify the offender
+ * (generic syntax errors), so the UI shows a locating snippet just for those.
+ */
+function classifyCluster(raw: string): { message: string; withContext: boolean } | null {
   const token = raw.match(VALID_TOKEN)
   if (token) {
     const name = token[1]
-    return isSupportedVariable(name) ? null : `Unknown variable: ${name}`
+    if (isSupportedVariable(name)) return null
+    return { message: `Unknown variable: ${name}`, withContext: false }
   }
 
   const braced = raw.match(DOUBLE_BRACED)
   if (braced) {
-    return `Invalid variable name: ${braced[1] || '(empty)'}`
+    return { message: `Invalid variable name: ${braced[1] || '(empty)'}`, withContext: false }
   }
 
-  return 'Invalid variable syntax'
+  return { message: 'Invalid variable syntax', withContext: true }
 }
 
 /**
@@ -59,13 +64,14 @@ function classifyCluster(raw: string): string | null {
 function variableErrors(content: string): ValidationError[] {
   const errors: ValidationError[] = []
   for (const m of content.matchAll(BRACE_CLUSTER)) {
-    const message = classifyCluster(m[0])
-    if (message) {
+    const result = classifyCluster(m[0])
+    if (result) {
+      const range = { start: m.index, end: m.index + m[0].length }
       errors.push({
         field: 'content',
-        message,
-        snippet: contextSnippet(content, m.index, m.index + m[0].length),
-        range: { start: m.index, end: m.index + m[0].length },
+        message: result.message,
+        snippet: result.withContext ? contextSnippet(content, range.start, range.end) : undefined,
+        range,
       })
     }
   }
