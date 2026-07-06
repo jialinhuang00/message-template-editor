@@ -1,0 +1,13 @@
+import pluginVue from 'eslint-plugin-vue'
+import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+
+export default defineConfigWithVueTs(
+  { name: 'app/files-to-lint', files: ['**/*.{ts,mts,tsx,vue}'] },
+  {
+    name: 'app/files-to-ignore',
+    // src/components/ui is vendored shadcn-vue code (single-word names by design).
+    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', 'src/components/ui/**'],
+  },
+  pluginVue.configs['flat/essential'],
+  vueTsConfigs.recommended,
+)
