@@ -21,6 +21,12 @@ const LANGUAGE_LABEL: Record<Language, string> = {
   en: 'English',
   ja: '日本語',
 }
+
+const CHANNEL_COLOR: Record<Channel, string> = {
+  WhatsApp: '#25D366',
+  LINE: '#06C755',
+  Messenger: '#0084FF',
+}
 </script>
 
 <template>
@@ -33,19 +39,16 @@ const LANGUAGE_LABEL: Record<Language, string> = {
     <div class="grid grid-cols-2 gap-4">
       <div class="space-y-2">
         <Label>Channel <span class="text-destructive">*</span></Label>
-        <div id="channel" tabindex="-1" class="flex gap-2 outline-none">
+        <div id="channel" tabindex="-1" class="flex gap-1 outline-none">
           <button
             v-for="c in CHANNELS"
             :key="c"
             type="button"
             :title="c"
             :aria-label="c"
-            class="flex items-center justify-center rounded-md border p-2 transition-colors"
-            :class="
-              channel === c
-                ? 'border-primary bg-accent text-accent-foreground'
-                : 'border-border text-muted-foreground hover:bg-accent/50'
-            "
+            class="rounded-md p-1 transition-all"
+            :class="channel === c ? 'opacity-100' : 'text-muted-foreground opacity-40 hover:opacity-70'"
+            :style="channel === c ? { color: CHANNEL_COLOR[c] } : {}"
             @click="channel = c"
           >
             <component :is="CHANNEL_ICON[c]" class="h-5 w-5" />
