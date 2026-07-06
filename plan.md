@@ -1,58 +1,59 @@
 # Message Template Editor — Build Plan
 
-Omnichat Senior FE assignment. 純前端 Vue 3 SPA,無後端,mock data。預算 3–5 小時。
-評分軸:feature completeness / code structure / TS quality / validation design / AI-assisted 判斷 / edge case / maintainability。
+A pure frontend Vue 3 SPA. No backend, mock data only. Budget: 3–5 hours.
+Graded on: feature completeness, code structure, TS quality, validation design,
+AI-assisted judgment, edge-case awareness, maintainability.
 
 ---
 
-## Tech Stack(鎖定)
+## Tech Stack (locked)
 
-| 層 | 選擇 | 理由 |
+| Layer | Choice | Why |
 |---|---|---|
-| Build | Vite (vue-ts 樣板) | Vue 3 預設,零設定 |
-| 框架 | Vue 3 `<script setup lang="ts">` | 規格指定,Composition API 最地道形式 |
-| UI | shadcn-vue (Tailwind + primitives) | 元件 copy-in 進 repo,自己擁有、可解釋,不是黑箱 |
-| 狀態 | ref + composables,無 Pinia | 單頁,沒有跨組件複雜狀態 |
-| 測試 | Vitest | 跟 Vite 同源,專打 `validate()` 純函式 |
-| Lint | ESLint + Prettier | 低成本吃 code readability |
-| 部署 | GitHub Pages (Actions) | 零成本零維護,reviewer 點連結即看 |
+| Build | Vite (vue-ts template) | Vue 3 default, zero config |
+| Framework | Vue 3 `<script setup lang="ts">` | Required; the idiomatic Composition API form |
+| UI | shadcn-vue (Tailwind + primitives) | Components are copied into the repo: owned, explainable, not a black box |
+| State | refs + composables, no Pinia | Single screen, no cross-component complex state |
+| Testing | Vitest | Same toolchain as Vite; targets the pure `validate()` function |
+| Lint | ESLint + Prettier | Cheap win for code readability |
+| Deploy | GitHub Pages (Actions) | Zero cost, zero maintenance, click-to-view for the reviewer |
 
-**明確不加:** Pinia / vue-router / 重量級 UI 全家桶。加了是 over-engineer 的反訊號。
+**Deliberately excluded:** Pinia / vue-router / heavy UI kits. Adding them would be an over-engineering signal.
 
 ---
 
-## 資料流
+## Data flow
 
 ```mermaid
 flowchart LR
   Form["TemplateForm state<br/>(useTemplateForm)"]
   Form --> V["useValidation<br/>(pure fn)"]
   Form --> P["useVariablePreview<br/>(replace {{ }})"]
-  V --> E["ValidationError[]"] --> UI1["ValidationErrorList<br/>+ 驗證狀態"]
+  V --> E["ValidationError[]"] --> UI1["ValidationErrorList<br/>+ status"]
   P --> Prev["preview text"] --> UI2["MessagePreviewCard"]
-  Btn["Submit"] --> Chk{"errors 為空?"}
+  Btn["Submit"] --> Chk{"errors empty?"}
   V --> Chk
-  Chk -->|"否"| E
-  Chk -->|"是"| Pay["build payload"] --> UI3["PayloadPreview"]
+  Chk -->|"no"| E
+  Chk -->|"yes"| Pay["build payload"] --> UI3["PayloadPreview"]
 ```
 
-核心一條:動 form → validation 跟 preview 即時重算。submit 只是再擋一次 + 組 payload。
+Core loop: editing the form recomputes validation and preview live. Submit just re-checks and builds the payload.
 
-## Component 樹
+## Component tree
 
 ```
-MessageTemplateEditor            // 容器,持有 form state
+MessageTemplateEditor            // container, holds form state
 ├── TemplateBasicForm            // Name / Channel / Language / Title
-├── MessageContentEditor         // textarea(游標插入的目標)
-│   └── VariableInsertToolbar     // 變數按鈕,插在游標位置
-├── MessagePreviewCard           // channel / title / 代值後訊息 / 驗證狀態
-├── ValidationErrorList          // 錯誤清單
-└── PayloadPreview               // submit 成功後的 payload JSON
+├── MessageContentEditor         // textarea (cursor-insertion target)
+│   └── VariableInsertToolbar     // variable buttons, insert at caret
+├── MessagePreviewCard           // channel bubble / title / substituted text / status
+├── ValidationErrorList          // error list
+└── PayloadPreview               // submitted payload JSON
 ```
 
 ---
 
-## Payload 形狀(自訂,求 reasonable + extensible)
+## Payload shape (self-designed: reasonable + extensible)
 
 ```ts
 type SubmitPayload = {
@@ -60,89 +61,87 @@ type SubmitPayload = {
   channel: Channel
   language: Language
   title?: string
-  content: string          // 原始模板,保留 {{ }}
-  variables: string[]      // 內容中實際用到的變數
+  content: string          // raw template, keeps {{ }}
+  variables: string[]      // variables actually used in the content
   meta: {
     contentLength: number
-    createdAt: string      // submit 當下時間
+    createdAt: string      // time of submit
   }
 }
 ```
 
-保留原始 content(含變數)是刻意的:後端才是真正填值群發的地方,前端不該提前 render 死。
+Keeping content raw (with variables) is deliberate: the backend is where values are filled per recipient, so the frontend does not render them in early.
 
 ---
 
-## 驗證規則(核心,全進一個純函式)
+## Validation rules (the core; all in one pure function)
 
-| 規則 | 條件 | 訊息 |
+| Rule | Condition | Message |
 |---|---|---|
-| Name 必填 | `name.trim()` 空 | Template name is required |
-| Channel 必填 | 未選 | Channel is required |
-| Content 必填 | `content.trim()` 空 | Message content is required |
+| Name required | `name.trim()` empty | Template name is required |
+| Channel required | not selected | Channel is required |
+| Content required | `content.trim()` empty | Message content is required |
 | Content ≤ 500 | `content.length > 500` | Message content cannot exceed 500 characters |
-| 未知變數 | `{{ x }}` 的 x 不在支援清單 | Unknown variable: x |
-| 語法錯誤 | 括號不成對 | Invalid variable syntax |
-| WhatsApp 空白 | 選 WhatsApp 且 6+ 連續空白 | WhatsApp message cannot contain more than 5 consecutive spaces |
+| Unknown variable | `{{ x }}` where x is not supported | Unknown variable: x |
+| Invalid syntax | unbalanced braces | Invalid variable syntax |
+| WhatsApp spaces | WhatsApp channel + 6+ consecutive spaces | WhatsApp message cannot contain more than 5 consecutive spaces |
 
-偵測法(兩步):
-1. 用 `/\{\{\s*(\w+)\s*\}\}/g` 撈合法 token,名字不在 `['customer_name','order_id','shop_name']` → 未知變數。
-2. 把合法 token 挖掉,若字串裡還剩 `{` 或 `}` → 語法錯。
+Detection: scan each brace cluster (`/\{+[^{}]*\}+|\{+|\}+/`) and classify it — valid token, unknown
+variable, invalid variable name, or invalid syntax. Channel rules live in a table (`Record<Channel, Rule[]>`)
+so new channels extend without touching the core flow.
 
-channel 規則做成 table(`Record<Channel, Rule[]>`),WhatsApp 那條掛在表裡,未來加規則不動主流程 = 可擴充加分項。
-
-**要在 README 交代的決定:**
-- 500 字算原始內容(含 `{{ }}`),不是替換後。
-- 落單括號一律當語法錯(含使用者只想打一個 `{`)。
-- Language 必填衝突(規格第 3 頁 vs 第 11 頁):跟「驗證規則」節走,當非必填、預設 zh-TW。
-- Language 只進 payload、無行為,保留給未來 locale 規則。
+**Decisions to document in the README:**
+- 500 chars counts the raw content (including `{{ }}`), not the substituted output.
+- A stray brace is always treated as invalid syntax (including a lone `{` the user meant literally).
+- Language required conflict (PDF p.3 vs p.11): follow the Validation Rules section, treat Language as optional, default `zh-TW` → shipped as `en`.
+- Language selects the preview's mock value set (localized), but has no validation rule.
 
 ---
 
-## Step-by-step(約 4 小時排法)
+## Step-by-step (~4 hour plan)
 
-- **P0 · Scaffold ~40m** — `create vite` vue-ts → shadcn-vue init → `add` button/input/select/textarea/card/label → 裝 vitest + eslint/prettier → 確認 dev server 起得來。
-- **P1 · Types & mock ~15m** — `types.ts`(Channel/Language/TemplateForm/ValidationError/SubmitPayload)、`mockValues`、`SUPPORTED_VARIABLES`。
-- **P2 · useValidation + 測試 ~60m** — 純函式先寫,Vitest 對著上面那張表逐條打(含兩個壞例子)。這是分數重心,先做。
-- **P3 · preview + form state ~30m** — `useVariablePreview`(regex replace)、`useTemplateForm`(ref state)。
-- **P4 · Components ~80m** — 六個 component;VariableInsertToolbar 做游標位置插入(textarea selectionStart,加分)。
-- **P5 · Wire + submit ~30m** — 組 MessageTemplateEditor;`submitTemplate(payload): Promise` 假 async(延遲 + 隨機成敗);invalid 擋、valid 印 payload。
-- **P6 · Polish + README + deploy ~40m** — 輕度 RWD;寫 README(下方檢查表);設 `base` + Actions 部署 Pages。
+- **P0 · Scaffold ~40m** — `create vite` vue-ts → shadcn-vue init → `add` button/input/select/textarea/card/label → vitest + eslint/prettier → confirm dev server runs.
+- **P1 · Types & mock ~15m** — `types.ts` (Channel/Language/TemplateForm/ValidationError/SubmitPayload), `mockValues`, `SUPPORTED_VARIABLES`.
+- **P2 · useValidation + tests ~60m** — pure function first, Vitest against the table above (incl. the malformed examples). The score sits here; do it first.
+- **P3 · preview + form state ~30m** — `useVariablePreview` (regex replace), `useTemplateForm` (ref state).
+- **P4 · Components ~80m** — the six components; VariableInsertToolbar does caret-position insertion (textarea selectionStart, a bonus).
+- **P5 · Wire + submit ~30m** — assemble MessageTemplateEditor; `submitTemplate(payload): Promise` fake async; invalid blocks, valid prints the payload.
+- **P6 · Polish + README + deploy ~40m** — light responsive; README (checklist below); set `base` + Actions deploy to Pages.
 
-順序原則:型別 → 核心驗證(TDD)→ 邏輯 composables → UI → 串接 → 收尾。UI 最後,因為分數在邏輯不在畫面。
-
----
-
-## GitHub Pages 部署
-
-`vite.config.ts` 設 `base: '/<repo-name>/'`(結尾斜線別漏),否則 asset 404。
-Actions:build → `actions/deploy-pages`。單頁無 router,不需要 SPA 404 fallback。
+Ordering principle: types → core validation (TDD) → logic composables → UI → wiring → polish. UI last, because the score is in the logic, not the pixels.
 
 ---
 
-## README 檢查表(收尾一次補齊)
+## GitHub Pages deploy
 
-規格要的:
-- [ ] How to run(`npm i` / `npm run dev` / `npm run test`)
-- [ ] Architecture design + Component structure
-- [ ] Validation logic design(貼那兩步偵測 + channel table)
-- [ ] AI usage notes(見下)
+Set `base: '/'` in `vite.config.ts` (served at the subdomain root, mte.jialin00.com).
+Actions: build → `actions/deploy-pages` (or peaceiris to the serving repo). Single page, no router, so no SPA 404 fallback needed.
+
+---
+
+## README checklist (fill at the end)
+
+Required by the spec:
+- [ ] How to run (`npm i` / `npm run dev` / `npm run test`)
+- [ ] Architecture design + component structure
+- [ ] Validation logic design (the classify scan + channel table)
+- [ ] AI usage notes (below)
 - [ ] Known limitations
 - [ ] What you'd improve with more time
-- [ ] 技術取捨:shadcn-vue 為何選、payload 為何留原始 content、500 算原始、Language 無行為、純 textarea 不做 rich text
+- [ ] Trade-offs: why shadcn-vue, why raw content in the payload, 500 counts raw, Language has no validation, plain textarea over rich text
 
-AI 使用五題:
-- [ ] 用了哪些 AI 工具
-- [ ] 怎麼用(需求拆解 / component / validation / regex / 測試 / README / code review)
-- [ ] 2–5 個關鍵 prompt
-- [ ] ≥2 個沒直接採用的 AI 建議(例:擋掉 EC2 後端、擋掉 rich text editor)
-- [ ] 怎麼驗證 AI 產出(Vitest 對驗證函式、type check、逐條 edge case)
+AI usage (five prompts):
+- [ ] Which AI tools were used
+- [ ] How (requirement breakdown / components / validation / regex / tests / README / code review)
+- [ ] 2–5 key prompts
+- [ ] ≥2 AI suggestions not adopted (e.g. rejected an EC2 backend, rejected a rich text editor)
+- [ ] How AI output was verified (Vitest on the validation fn, type check, per-rule edge cases)
 
 ---
 
-## Additions(backlog,延後、非規格必需)
+## Additions (backlog — deferred, not required by the spec)
 
-停在這裡的加分項,按優先序:
+Parked enhancements, in priority order:
 
-1. **Channel 擬真細節** — 讓每個 channel 的 preview 更像真 app:LINE 圓角氣泡、Messenger 頭像、時間戳 + 已讀勾勾。目前顏色 + 頻道 bar 已能分辨 channel,這是下一層擬真。
-2. **localStorage 存 template** — submit 過的存進 localStorage、列清單、點了載回表單。沒後端也能模擬範本庫。規格不要求 persist(submit 只需顯示 payload),所以這是加分,順便補強「存模板、不是發訊息」的產品語意。
+1. **Channel realism** — make each preview look more like the real app: LINE rounded bubbles, Messenger avatar, timestamp + read receipts. Colours and the channel bar already differ per channel; this is the next fidelity layer.
+2. **Save template to localStorage** — persist submitted templates locally, list them, click to reload into the form. Simulates a template library without a backend. The spec does not require persistence (submit only needs to display the payload), so this is a bonus that reinforces the "save a template, not send a message" model.
