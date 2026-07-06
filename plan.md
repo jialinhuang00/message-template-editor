@@ -1,8 +1,8 @@
 # Message Template Editor — Build Plan
 
-A pure frontend Vue 3 SPA. No backend, mock data only. Budget: 3–5 hours.
-Graded on: feature completeness, code structure, TS quality, validation design,
-AI-assisted judgment, edge-case awareness, maintainability.
+A pure frontend Vue 3 SPA. No backend, mock data only.
+Priorities: feature completeness, code structure, TS quality, validation design,
+edge-case awareness, maintainability.
 
 ---
 
@@ -15,7 +15,7 @@ AI-assisted judgment, edge-case awareness, maintainability.
 | UI | shadcn-vue (Tailwind + primitives) | Components are copied into the repo: owned, explainable, not a black box |
 | State | refs + composables, no Pinia | Single screen, no cross-component complex state |
 | Testing | Vitest | Same toolchain as Vite; targets the pure `validate()` function |
-| Lint | ESLint + Prettier | Cheap win for code readability |
+| Lint | ESLint | Cheap win for code readability |
 | Deploy | GitHub Pages (Actions) | Zero cost, zero maintenance, click-to-view for the reviewer |
 
 **Deliberately excluded:** Pinia / vue-router / heavy UI kits. Adding them would be an over-engineering signal.
@@ -93,22 +93,22 @@ so new channels extend without touching the core flow.
 **Decisions to document in the README:**
 - 500 chars counts the raw content (including `{{ }}`), not the substituted output.
 - A stray brace is always treated as invalid syntax (including a lone `{` the user meant literally).
-- Language required conflict (PDF p.3 vs p.11): follow the Validation Rules section, treat Language as optional, default `zh-TW` → shipped as `en`.
+- Language required conflict (two sections disagree): follow the Validation Rules section, treat Language as optional, default `en`.
 - Language selects the preview's mock value set (localized), but has no validation rule.
 
 ---
 
-## Step-by-step (~4 hour plan)
+## Step-by-step
 
 - **P0 · Scaffold ~40m** — `create vite` vue-ts → shadcn-vue init → `add` button/input/select/textarea/card/label → vitest + eslint/prettier → confirm dev server runs.
 - **P1 · Types & mock ~15m** — `types.ts` (Channel/Language/TemplateForm/ValidationError/SubmitPayload), `mockValues`, `SUPPORTED_VARIABLES`.
-- **P2 · useValidation + tests ~60m** — pure function first, Vitest against the table above (incl. the malformed examples). The score sits here; do it first.
+- **P2 · useValidation + tests ~60m** — pure function first, Vitest against the table above (incl. the malformed examples). The core logic sits here; do it first.
 - **P3 · preview + form state ~30m** — `useVariablePreview` (regex replace), `useTemplateForm` (ref state).
 - **P4 · Components ~80m** — the six components; VariableInsertToolbar does caret-position insertion (textarea selectionStart, a bonus).
 - **P5 · Wire + submit ~30m** — assemble MessageTemplateEditor; `submitTemplate(payload): Promise` fake async; invalid blocks, valid prints the payload.
 - **P6 · Polish + README + deploy ~40m** — light responsive; README (checklist below); set `base` + Actions deploy to Pages.
 
-Ordering principle: types → core validation (TDD) → logic composables → UI → wiring → polish. UI last, because the score is in the logic, not the pixels.
+Ordering principle: types → core validation (TDD) → logic composables → UI → wiring → polish. UI last, because the logic matters more than the pixels.
 
 ---
 
@@ -121,7 +121,7 @@ Actions: build → `actions/deploy-pages` (or peaceiris to the serving repo). Si
 
 ## README checklist (fill at the end)
 
-Required by the spec:
+Required:
 - [ ] How to run (`npm i` / `npm run dev` / `npm run test`)
 - [ ] Architecture design + component structure
 - [ ] Validation logic design (the classify scan + channel table)
@@ -139,10 +139,10 @@ AI usage (five prompts):
 
 ---
 
-## Additions (backlog — deferred, not required by the spec)
+## Additions (backlog — deferred, not required)
 
 Parked enhancements, in priority order:
 
 1. **Channel realism** — make each preview look more like the real app: LINE rounded bubbles, Messenger avatar, timestamp + read receipts. Colours and the channel bar already differ per channel; this is the next fidelity layer.
-2. **Save template to localStorage** — persist submitted templates locally, list them, click to reload into the form. Simulates a template library without a backend. The spec does not require persistence (submit only needs to display the payload), so this is a bonus that reinforces the "save a template, not send a message" model.
+2. **Save template to localStorage** — persist submitted templates locally, list them, click to reload into the form. Simulates a template library without a backend. Persistence is not required (submit only needs to display the payload), so this is a bonus that reinforces the "save a template, not send a message" model.
 3. **Playwright E2E** — end-to-end tests over the real browser flow (fill form → live preview substitutes mock values → submit shows payload; malformed braces surface the syntax error). Unit tests already cover the validation core; this adds coverage of the wiring the unit tests can't see.

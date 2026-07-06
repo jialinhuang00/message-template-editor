@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import IconGithub from '~icons/simple-icons/github'
 
-const REPO_URL = 'https://github.com/jialinhuang00/omnichat-template-editor'
+const REPO_URL = 'https://github.com/jialinhuang00/message-template-editor'
 const STACK = ['Vue 3', 'TypeScript', 'Vite', 'Tailwind CSS', 'shadcn-vue']
 </script>
 

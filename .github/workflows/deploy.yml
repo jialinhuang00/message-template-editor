@@ -32,3 +32,4 @@ jobs:
           external_repository: jialinhuangblog/mte
           publish_branch: gh-pages
           publish_dir: ./dist
+          cname: mte.jialin00.com

@@ -1,6 +1,6 @@
 # Message Template Editor
 
-A message template editor for a multi-channel messaging platform (Omnichat). Author a
+A message template editor for a multi-channel messaging platform. Author a
 template, insert variables, preview what the customer will actually receive per channel,
 validate the content, and review the payload that would be submitted. Frontend only: no
 backend, mock data.
@@ -93,20 +93,20 @@ is a syntax error, which takes priority over interpreting the inner text.
 ## Design decisions & trade-offs
 
 - **shadcn-vue over plain CSS or a heavy UI kit.** shadcn components are copied into the
-  repo, so I own and can explain them, and the component structure stays visible (a graded
-  criterion) rather than hidden inside a library.
-- **Cursor-position variable insertion, not append.** The spec allows appending to the end
-  but asks to justify it; I did the harder version instead, inserting at the caret where the
+  repo, so I own and can explain them, and the component structure stays visible rather than
+  hidden inside a library.
+- **Cursor-position variable insertion, not append.** Appending to the end would be allowed,
+  but I did the harder version instead, inserting at the caret where the
   user is typing. Appending would be simpler but forces the user to move the token manually.
 - **Hand-written pure function, not vee-validate/zod.** The rules are custom (variable
   parsing, malformed-region location, channel rules), so a schema library would add weight
   without removing the hard part. A pure function is trivially unit-testable.
 - **Payload keeps the raw content** (with `{{ }}`). Substitution belongs on the send side,
   per recipient; the frontend should not bake in values at authoring time.
-- **Language has no validation.** The spec lists it but attaches no behaviour to it. It goes
-  into the payload as metadata. Beyond the spec, I let it localize the preview mock values
+- **Language has no validation.** The requirements list it but attach no behaviour to it. It
+  goes into the payload as metadata. Beyond that, I let it localize the preview mock values
   and the placeholder/Tab example (e.g. `ja` shows a Japanese name).
-- **Plain `<textarea>`, not a rich text editor.** The spec's anatomy specifies a textarea;
+- **Plain `<textarea>`, not a rich text editor.** The suggested anatomy specifies a textarea;
   syntax highlighting inside it would need a contenteditable/overlay and isn't required.
 - **The preview is one persistent bubble, not swapped elements.** While editing it shows the
   live text with a blinking caret; 700ms after the last keystroke the message "sends" (the
@@ -140,9 +140,9 @@ driven by screenshots (channel-accurate previews, the composing animation, send 
 
 **Key prompts that shaped the result:**
 
-1. *"What is the minimum this assignment requires, and which bonus items are worth doing?"*
+1. *"What is the minimum this project requires, and which extras are worth doing?"*
    — set the scope and the build plan before any code.
-2. *"Deploy it as a subdomain like sdg.jialin00.com."* — shaped the GitHub Pages + subdomain
+2. *"Deploy it as a subdomain like sibling.jialin00.com."* — shaped the GitHub Pages + subdomain
    deploy, and ruled out a live backend as fragile/out of scope.
 3. *"Validation errors should only appear after I start editing — blaming an untouched form
    is bad."* — led to the `dirty`-gated validation and the `Draft` state.
@@ -160,7 +160,7 @@ driven by screenshots (channel-accurate previews, the composing animation, send 
 - AI suggested plain scoped CSS with no UI library; I chose shadcn-vue instead.
 - AI's first validation grouped two malformed tokens into one error; I pointed out they
   should be separate, so it now reports one error per brace cluster.
-- AI said the spec only needs to display the payload on submit; I want a localStorage
+- AI said the brief only needs to display the payload on submit; I want a localStorage
   template library (parked as a backlog item).
 - AI's Messenger preview used a grey background; I corrected it to white with grey bubbles.
 - AI's first send animation re-mounted the bubble and flashed on every send; I switched to a
@@ -168,13 +168,13 @@ driven by screenshots (channel-accurate previews, the composing animation, send 
 
 **How I verified AI output:**
 
-- Vitest unit tests (19 cases) against the pure validation function, covering the seven spec
-  rules and malformed-syntax edge cases.
+- Vitest unit tests (19 cases) against the pure validation function, covering the seven
+  validation rules and malformed-syntax edge cases.
 - TypeScript type-checking (`vue-tsc --noEmit`) after every change; zero errors before commit.
 - ESLint (`@vue/eslint-config-typescript`) with zero warnings.
 - Manual edge-case testing in the dev server (missing braces, unknown variables, consecutive
   spaces) watching the preview and error reactions.
-- A section-by-section cross-check against the assignment PDF.
+- A section-by-section cross-check against the requirements.
 
 ## Known limitations
 
