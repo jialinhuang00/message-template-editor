@@ -64,7 +64,7 @@ defineExpose({ selectRange })
 <template>
   <div class="space-y-2">
     <div class="flex items-center justify-between">
-      <Label for="content">Message Content</Label>
+      <Label for="content">Message Content <span class="text-destructive">*</span></Label>
       <span class="text-xs" :class="overLimit ? 'text-destructive' : 'text-muted-foreground'">
         {{ content.length }} / {{ MAX_CONTENT_LENGTH }}
       </span>

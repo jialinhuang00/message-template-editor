@@ -19,13 +19,13 @@ const title = defineModel<string>('title', { required: true })
 <template>
   <div class="space-y-4">
     <div class="space-y-2">
-      <Label for="name">Template Name</Label>
+      <Label for="name">Template Name <span class="text-destructive">*</span></Label>
       <Input id="name" v-model="name" placeholder="Order ready notification" />
     </div>
 
     <div class="grid grid-cols-2 gap-4">
       <div class="space-y-2">
-        <Label for="channel">Channel</Label>
+        <Label for="channel">Channel <span class="text-destructive">*</span></Label>
         <Select v-model="channel">
           <SelectTrigger id="channel" class="w-full">
             <SelectValue placeholder="Select a channel" />
